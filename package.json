@@ -1,0 +1,23 @@
+{
+  "name": "asistente-pitin",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@builderbot/bot": "^1.4.2",
+    "@builderbot/provider-baileys": "^1.4.2",
+    "baileys": "7.0.0-rc14",
+    "dotenv": "^17.4.2"
+  },
+  "overrides": {
+    "baileys": "7.0.0-rc14"
+  }
+}
