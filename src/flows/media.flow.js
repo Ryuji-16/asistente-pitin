@@ -1,6 +1,12 @@
 import { addKeyword, EVENTS } from '@builderbot/bot';
+import { storeService } from '../services/storeService.js';
 
 export const flowMedia = addKeyword(EVENTS.MEDIA)
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer(
         [
             '📸 *¡Comprobante / Archivo recibido!*',

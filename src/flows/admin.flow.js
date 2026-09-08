@@ -2,25 +2,43 @@ import { addKeyword } from '@builderbot/bot';
 import { storeService } from '../services/storeService.js';
 import { formatVenezuelaDate } from '../utils/formatters.js';
 
-export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda', '#grupo'])
+export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda', '#grupo', '#pausar', '#activar'])
     .addAction(async (ctx, { flowDynamic }) => {
         const text = (ctx.body || '').trim();
         const sender = ctx.pushName || ctx.from;
+
+        // 0. Comandos de pausa y activación
+        if (text.toLowerCase() === '#pausar') {
+            storeService.setPaused(true, sender);
+            return await flowDynamic([
+                '⏸️ *ASISTENTE PITÍN EN PAUSA*',
+                '═════════════════════════════════',
+                'El bot ha sido pausado. Ya no responderá automáticamente a los clientes.',
+                '',
+                'Para volver a activarlo, escribe: `#activar`.'
+            ].join('\n'));
+        }
+
+        if (text.toLowerCase() === '#activar') {
+            storeService.setPaused(false, sender);
+            return await flowDynamic([
+                '🟢 *ASISTENTE PITÍN ACTIVADO*',
+                '═════════════════════════════════',
+                'El bot está nuevamente en línea y respondiendo normalmente a los clientes.'
+            ].join('\n'));
+        }
 
         // 1. Comando de ayuda
         if (text.toLowerCase() === '#ayuda') {
             return await flowDynamic([
                 '🛠️ *COMANDOS DE ADMINISTRACIÓN PITAPOLLO*',
                 '═════════════════════════════════',
+                '• `#pausar` -> Pausa las respuestas automáticas del bot a los clientes.',
+                '• `#activar` -> Reactiva las respuestas automáticas.',
                 '• `#precios [texto]` -> Actualiza la lista de precios y ofertas.',
-                '  _Ejemplo: Copias o reenvías el mensaje y le agregas #precios al inicio._',
-                '',
                 '• `#tasa [monto]` -> Actualiza la tasa del día en bolívares.',
-                '  _Ejemplo: #tasa 65.50_',
-                '',
-                '• `#ver` o `#estado` -> Muestra la lista de precios que ven los clientes actualmente.',
-                '',
-                '• `#grupo` -> Registra el grupo actual como canal oficial de actualizaciones.',
+                '• `#ver` o `#estado` -> Muestra la lista y estado actual del bot.',
+                '• `#grupo` -> Registra el grupo actual para actualizaciones.',
                 '═════════════════════════════════'
             ].join('\n'));
         }

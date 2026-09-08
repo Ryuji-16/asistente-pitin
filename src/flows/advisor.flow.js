@@ -1,7 +1,13 @@
 import { addKeyword } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
+import { storeService } from '../services/storeService.js';
 
 export const flowAdvisor = addKeyword(['5', 'asesor', 'humano', 'persona', 'ayuda', 'operador', 'hablar con asesor'])
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer(
         [
             '👤 *CONECTANDO CON UN ASESOR*',

@@ -4,6 +4,11 @@ import { PROMOS } from '../config/data.js';
 import { storeService } from '../services/storeService.js';
 
 export const flowOffers = addKeyword(['1', 'oferta', 'ofertas', 'promocion', 'promociones', 'precios', 'catalogo', 'ver ofertas'])
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer('🍗 *¡OFERTAS Y PROMOCIONES DESTACADAS EN PITAPOLLO!*')
     .addAction(async (_, { flowDynamic }) => {
         // Envío de imágenes de promociones activas

@@ -1,11 +1,17 @@
 import { addKeyword, EVENTS } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
+import { storeService } from '../services/storeService.js';
 
 export const flowWelcome = addKeyword([
     'hola', 'buenas', 'buen dia', 'buenas tardes', 'buenas noches',
     'menu', 'inicio', 'empezar', 'hey', 'alo', 'saludos',
     EVENTS.WELCOME
 ])
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer(
         [
             `¡Hola! 👋 Te habla *${BUSINESS_INFO.assistantName}*, tu asistente virtual de *${BUSINESS_INFO.name}* 🍗✨`,

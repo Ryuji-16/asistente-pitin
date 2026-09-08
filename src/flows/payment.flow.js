@@ -1,7 +1,13 @@
 import { addKeyword } from '@builderbot/bot';
 import { PAYMENT_METHODS } from '../config/data.js';
+import { storeService } from '../services/storeService.js';
 
 export const flowPayment = addKeyword(['3', 'pago', 'pagos', 'pagar', 'cuenta', 'cuentas', 'zelle', 'pago movil', 'datos', 'transferencia'])
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer(
         [
             '💳 *MÉTODOS DE PAGO DISPONIBLES - PITAPOLLO*',

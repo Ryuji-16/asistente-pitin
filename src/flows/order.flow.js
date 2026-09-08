@@ -1,7 +1,13 @@
 import { addKeyword } from '@builderbot/bot';
 import { OrderService } from '../services/orderService.js';
+import { storeService } from '../services/storeService.js';
 
 export const flowOrder = addKeyword(['2', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido'])
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer(
         '🛒 *INICIAR PEDIDO - PITAPOLLO*\n\n¡Excelente! Vamos a tomar los datos de tu pedido paso a paso.\n\nPor favor, escribe tu *Nombre y Apellido*:',
         { capture: true },

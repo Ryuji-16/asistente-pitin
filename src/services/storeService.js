@@ -91,6 +91,28 @@ class StoreService {
     }
 
     /**
+     * Pausa o reactiva el bot para clientes
+     * @param {boolean} status
+     * @param {string} sender
+     */
+    setPaused(status, sender = 'Admin') {
+        this.data.isPaused = Boolean(status);
+        this.data.lastUpdated = new Date().toISOString();
+        this.data.updatedBy = sender;
+        this.save();
+        logger.info(`Estado del bot cambiado a: ${status ? 'PAUSADO ⏸️' : 'ACTIVO 🟢'} por ${sender}`);
+        return this.data.isPaused;
+    }
+
+    /**
+     * Verifica si el bot está pausado
+     * @returns {boolean}
+     */
+    isPaused() {
+        return Boolean(this.data.isPaused);
+    }
+
+    /**
      * Devuelve los datos actuales del store
      */
     getStore() {

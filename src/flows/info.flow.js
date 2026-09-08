@@ -1,7 +1,13 @@
 import { addKeyword } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
+import { storeService } from '../services/storeService.js';
 
 export const flowInfo = addKeyword(['4', 'ubicacion', 'direccion', 'donde estan', 'horario', 'horarios', 'delivery', 'zona', 'zonas'])
+    .addAction(async (_, { endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+    })
     .addAnswer(
         [
             `📍 *UBICACIÓN Y HORARIOS - ${BUSINESS_INFO.name.toUpperCase()}*`,
