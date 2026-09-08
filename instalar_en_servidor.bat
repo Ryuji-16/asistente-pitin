@@ -5,7 +5,10 @@ color 0A
 echo ============================================================
 echo   🍗 INSTALACION DE ASISTENTE PITIN EN EL SERVIDOR
 echo ============================================================
-echo.
+:: Detectar rutas estandar de Node.js
+if exist "%ProgramFiles%\nodejs\node.exe" set "PATH=%ProgramFiles%\nodejs;%PATH%"
+if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "PATH=%ProgramFiles(x86)%\nodejs;%PATH%"
+if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "PATH=%LOCALAPPDATA%\Programs\nodejs;%PATH%"
 
 :: 1. Verificar Node.js
 echo [1/3] Verificando Node.js...
