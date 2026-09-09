@@ -47,3 +47,19 @@ export function arePhoneNumbersEqual(p1 = '', p2 = '') {
     if (!clean1 || !clean2) return false;
     return clean1 === clean2 || clean1.endsWith(clean2) || clean2.endsWith(clean1);
 }
+
+/**
+ * Extrae el ID del mensaje citado (quoted message) en WhatsApp Baileys
+ * @param {Object} ctx
+ * @returns {string|null}
+ */
+export function getQuotedMessageId(ctx) {
+    if (!ctx) return null;
+    return (
+        ctx.message?.extendedTextMessage?.contextInfo?.stanzaId ||
+        ctx.message?.imageMessage?.contextInfo?.stanzaId ||
+        ctx.message?.documentMessage?.contextInfo?.stanzaId ||
+        ctx.contextInfo?.stanzaId ||
+        null
+    );
+}

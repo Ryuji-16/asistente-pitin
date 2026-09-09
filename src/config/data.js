@@ -27,7 +27,7 @@ export const PAYMENT_METHODS = {
         titular: 'Pita Pollo CCS',
         nota: '⚠️ IMPORTANTE: Colocar en concepto/nota: Pollo Trinidad'
     },
-    otros: '💵 Efectivo en divisas (billetes sin roturas ni marcas)\n💳 Punto de venta disponible en tienda\n🇻🇪 Bolívares a tasa oficial BCV del día'
+    otros: '💳 Punto de venta inalámbrico (¡El motorizado lleva el punto a tu puerta!)\n🏪 Punto de venta disponible en tienda\n💵 Efectivo en divisas (billetes en buen estado)\n🇻🇪 Bolívares en efectivo o transferencia a tasa oficial BCV'
 };
 
 export const PROMOS = [
