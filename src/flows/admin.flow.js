@@ -1,9 +1,16 @@
 import { addKeyword } from '@builderbot/bot';
 import { storeService } from '../services/storeService.js';
 import { formatVenezuelaDate } from '../utils/formatters.js';
+import { logger } from '../utils/logger.js';
 
 export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda', '#grupo', '#pausar', '#activar'])
-    .addAction(async (ctx, { flowDynamic }) => {
+    .addAction(async (ctx, { flowDynamic, endFlow }) => {
+        // Validación estricta de autorización
+        if (!storeService.isAdmin(ctx)) {
+            logger.warn(`Intento no autorizado de comando admin (${ctx.body}) desde: ${ctx.from}`);
+            return endFlow();
+        }
+
         const text = (ctx.body || '').trim();
         const sender = ctx.pushName || ctx.from;
 
@@ -45,11 +52,14 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
 
         // 2. Registrar grupo de administración
         if (text.toLowerCase() === '#grupo') {
+            if (!storeService.isSuperAdmin(ctx)) {
+                return await flowDynamic('⚠️ Solo el número del administrador principal puede autorizar nuevos grupos con `#grupo`.');
+            }
             const groupId = ctx.key?.remoteJid || ctx.from;
             storeService.registerAdminGroup(groupId);
             return await flowDynamic([
-                '✅ *¡Grupo registrado como canal de actualizaciones!*',
-                'A partir de ahora puedes enviar o actualizar precios desde aquí.'
+                '✅ *¡Grupo registrado como canal de administración!*',
+                'A partir de ahora puedes enviar o actualizar precios desde aquí y se recibirán los avisos de pedidos.'
             ].join('\n'));
         }
 

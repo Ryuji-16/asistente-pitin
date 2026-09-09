@@ -33,3 +33,17 @@ export function cleanText(str = '') {
 export function sanitizePhone(phone = '') {
     return String(phone || '').replace(/[^0-9]/g, '');
 }
+
+/**
+ * Compara si dos números de teléfono corresponden a la misma línea
+ * considerando formatos locales (0414...) e internacionales (58414...)
+ * @param {string} p1
+ * @param {string} p2
+ * @returns {boolean}
+ */
+export function arePhoneNumbersEqual(p1 = '', p2 = '') {
+    const clean1 = sanitizePhone(p1).replace(/^0+/, '');
+    const clean2 = sanitizePhone(p2).replace(/^0+/, '');
+    if (!clean1 || !clean2) return false;
+    return clean1 === clean2 || clean1.endsWith(clean2) || clean2.endsWith(clean1);
+}

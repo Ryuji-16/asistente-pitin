@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GENERAL_CATALOG } from '../config/data.js';
-import { formatVenezuelaDate } from '../utils/formatters.js';
+import { formatVenezuelaDate, arePhoneNumbersEqual, sanitizePhone } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,24 +15,27 @@ class StoreService {
     }
 
     /**
-     * Carga el archivo de almacenamiento persistente
+     * Carga el archivo de almacenamiento persistente asegurando valores por defecto
      */
     load() {
-        try {
-            if (fs.existsSync(storePath)) {
-                const raw = fs.readFileSync(storePath, 'utf8');
-                return JSON.parse(raw);
-            }
-        } catch (err) {
-            logger.error('Error al leer store.json, usando valores por defecto:', err.message);
-        }
-        return {
+        const defaults = {
             customCatalog: '',
             tasaBCV: '',
             lastUpdated: null,
             updatedBy: null,
             adminGroups: [],
+            isPaused: false,
         };
+
+        try {
+            if (fs.existsSync(storePath)) {
+                const raw = fs.readFileSync(storePath, 'utf8');
+                return { ...defaults, ...JSON.parse(raw) };
+            }
+        } catch (err) {
+            logger.error('Error al leer store.json, usando valores por defecto:', err.message);
+        }
+        return defaults;
     }
 
     /**
@@ -87,6 +90,77 @@ class StoreService {
             this.data.adminGroups.push(groupId);
             this.save();
             logger.success(`Grupo de administración registrado: ${groupId}`);
+        }
+    }
+
+    /**
+     * Verifica si el remitente del mensaje es un administrador autorizado o proviene de un grupo admin
+     * @param {Object} ctx Contexto del mensaje de BuilderBot
+     * @returns {boolean}
+     */
+    isAdmin(ctx) {
+        if (!ctx) return false;
+
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        const participant = ctx.key?.participant || ctx.from || '';
+
+        // 1. Verificar si proviene de un grupo registrado de administracion
+        if (Array.isArray(this.data.adminGroups) && this.data.adminGroups.includes(remoteJid)) {
+            return true;
+        }
+
+        // 2. Verificar si el telefono del remitente coincide con ADMIN_PHONE
+        const adminPhone = process.env.ADMIN_PHONE || '04142634053';
+        if (arePhoneNumbersEqual(participant, adminPhone) || arePhoneNumbersEqual(ctx.from, adminPhone)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Verifica si el remitente es el administrador principal (para tareas criticas como registrar grupos)
+     * @param {Object} ctx Contexto del mensaje de BuilderBot
+     * @returns {boolean}
+     */
+    isSuperAdmin(ctx) {
+        if (!ctx) return false;
+        const participant = ctx.key?.participant || ctx.from || '';
+        const adminPhone = process.env.ADMIN_PHONE || '04142634053';
+        return arePhoneNumbersEqual(participant, adminPhone) || arePhoneNumbersEqual(ctx.from, adminPhone);
+    }
+
+    /**
+     * Notifica a todos los canales administrativos (grupos registrados y telefono admin)
+     * @param {Object} provider Proveedor de BuilderBot
+     * @param {string} message Mensaje a enviar
+     */
+    async notifyAdmins(provider, message) {
+        if (!provider || !message) return;
+
+        const targets = new Set();
+
+        // 1. Agregar grupos registrados
+        if (Array.isArray(this.data.adminGroups)) {
+            for (const groupId of this.data.adminGroups) {
+                if (groupId) targets.add(groupId);
+            }
+        }
+
+        // 2. Agregar telefono admin si esta configurado
+        const adminPhone = sanitizePhone(process.env.ADMIN_PHONE || '');
+        if (adminPhone) {
+            const normalizedPhone = adminPhone.startsWith('58') ? adminPhone : `58${adminPhone.replace(/^0+/, '')}`;
+            targets.add(`${normalizedPhone}@s.whatsapp.net`);
+        }
+
+        // 3. Enviar notificaciones a cada canal
+        for (const target of targets) {
+            try {
+                await provider.sendMessage(target, message, {});
+            } catch (err) {
+                logger.error(`Error al notificar a canal admin (${target}):`, err.message);
+            }
         }
     }
 
