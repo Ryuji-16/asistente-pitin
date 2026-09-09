@@ -1,13 +1,14 @@
 import { addKeyword } from '@builderbot/bot';
-import { OrderService } from '../services/orderService.js';
+import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
+import { estimateDeliveryFee } from '../config/delivery.js';
 
 const isCancelRequest = (text = '') => {
     const clean = text.trim().toLowerCase();
     return ['cancelar', 'cancela', 'salir', 'menu', 'inicio'].includes(clean);
 };
 
-export const flowOrder = addKeyword(['2', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido'])
+export const flowOrder = addKeyword(['2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido'])
     .addAction(async (_, { endFlow }) => {
         if (storeService.isPaused()) {
             return endFlow();
@@ -57,18 +58,67 @@ export const flowOrder = addKeyword(['2', 'pedido', 'pedir', 'comprar', 'orden',
         }
     )
     .addAnswer(
-        'Si elegiste *Delivery*, escribe tu *dirección exacta con punto de referencia*.\n\n_(Si elegiste retiro en tienda, solo responde "tienda" o "ok")_:',
+        [
+            '📍 *DIRECCIÓN DE ENTREGA:*',
+            '',
+            'Si elegiste *Delivery*, para cotizar tu envío con precisión y que el motorizado llegue directo a tu puerta:',
+            '👉 Envíanos tu *ubicación GPS* (toca el clip 📎 y selecciona "Ubicación") o escribe tu *zona y dirección exacta* con punto de referencia.',
+            '',
+            '_(Si elegiste retiro en tienda, solo responde "tienda" o "ok")_:'
+        ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, endFlow }) => {
             if (isCancelRequest(ctx.body)) {
                 await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
                 return endFlow();
             }
-            await state.update({ address: ctx.body?.trim() || 'Tienda' });
+
+            const s = state.getMyState() || {};
+            const isDelivery = Boolean(s.isDelivery);
+
+            // 1. Detectar si enviaron ubicación nativa de WhatsApp
+            let latitude = ctx.message?.locationMessage?.degreesLatitude || null;
+            let longitude = ctx.message?.locationMessage?.degreesLongitude || null;
+            let address = ctx.body?.trim() || (latitude ? 'Ubicación GPS' : 'Tienda');
+
+            // 2. Si enviaron enlace de Maps por texto
+            if (!latitude && address.includes('maps')) {
+                const match = address.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (match) {
+                    latitude = parseFloat(match[1]);
+                    longitude = parseFloat(match[2]);
+                }
+            }
+
+            // 3. Estimar tarifa de delivery
+            const feeEst = isDelivery
+                ? estimateDeliveryFee({ latitude, longitude, zoneText: address })
+                : { fee: null, tier: null, label: '', isEstimated: false };
+
+            await state.update({
+                address,
+                latitude,
+                longitude,
+                deliveryFee: feeEst.fee,
+                deliveryLabel: feeEst.label
+            });
+
+            if (isDelivery && feeEst.fee) {
+                await flowDynamic(`🛵 *Tarifa de delivery sugerida:* $${feeEst.fee.toFixed(2)} (${feeEst.label})`);
+            }
         }
     )
     .addAnswer(
-        '¿Cuál será tu método de pago?\n\nResponde con el número:\n1️⃣ *Pago Móvil (Banesco)*\n2️⃣ *Zelle*\n3️⃣ *Efectivo (Divisas / Bs)*\n4️⃣ *Punto de venta en tienda*',
+        [
+            '¿Cuál será tu método de pago?',
+            '',
+            'Responde con el número:',
+            '1️⃣ *Pago Móvil (Banesco)*',
+            '2️⃣ *Zelle*',
+            '3️⃣ *Efectivo (Divisas / Bs)*',
+            '4️⃣ *Punto de Venta Inalámbrico (Delivery a tu puerta)*',
+            '5️⃣ *Punto de Venta en Tienda (Retiro presencial)*'
+        ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, provider, endFlow }) => {
             if (isCancelRequest(ctx.body)) {
@@ -79,33 +129,44 @@ export const flowOrder = addKeyword(['2', 'pedido', 'pedir', 'comprar', 'orden',
             let paymentChoice = (ctx.body || '').trim();
             if (paymentChoice === '1') paymentChoice = 'Pago Móvil (Banesco)';
             else if (paymentChoice === '2') paymentChoice = 'Zelle';
-            else if (paymentChoice === '3') paymentChoice = 'Efectivo';
-            else if (paymentChoice === '4') paymentChoice = 'Punto de venta en tienda';
+            else if (paymentChoice === '3') paymentChoice = 'Efectivo (Divisas / Bs)';
+            else if (paymentChoice === '4') paymentChoice = 'Punto de venta inalámbrico (Delivery)';
+            else if (paymentChoice === '5') paymentChoice = 'Punto de venta en tienda';
 
             await state.update({ paymentChoice });
             const s = state.getMyState() || {};
 
-            const summary = OrderService.buildSummary({
+            // 1. Crear el pedido en el servicio central
+            const order = orderService.createOrder({
+                clientPhone: ctx.from,
                 clientName: s.clientName,
                 items: s.items,
                 isDelivery: s.isDelivery,
                 address: s.address,
+                latitude: s.latitude,
+                longitude: s.longitude,
+                deliveryFee: s.deliveryFee,
+                deliveryLabel: s.deliveryLabel,
                 paymentChoice
             });
 
-            // Enviar resumen al cliente
+            // 2. Enviar resumen al cliente
+            const summary = orderService.buildSummary(order);
             await flowDynamic(summary);
 
-            // Notificar a los canales administrativos de la tienda
-            const clientPhone = ctx.from || 'Desconocido';
-            const adminNotice = [
-                '🚨 *¡NUEVO PEDIDO REGISTRADO!*',
-                '═══════════════════════════════',
-                `📱 *Cliente WhatsApp:* https://wa.me/${clientPhone}`,
-                '',
-                summary
-            ].join('\n');
+            // 3. Notificar al grupo de despacho de la tienda e iniciar el hilo
+            const storeNotice = orderService.buildStoreNotification(order);
+            const adminGroups = storeService.getStore().adminGroups || [];
 
-            await storeService.notifyAdmins(provider, adminNotice);
+            for (const groupId of adminGroups) {
+                try {
+                    const sentMsg = await provider.sendMessage(groupId, storeNotice, {});
+                    if (sentMsg?.key?.id) {
+                        orderService.registerThreadMessage(order.id, sentMsg.key.id);
+                    }
+                } catch (err) {
+                    console.error(`Error enviando pedido #${order.id} al grupo ${groupId}:`, err.message);
+                }
+            }
         }
     );
