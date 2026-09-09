@@ -20,7 +20,11 @@ const main = async () => {
 
     const adapterDB = new MemoryDB();
     const adapterFlow = createFlow(botFlows);
-    const adapterProvider = createProvider(BaileysProvider, { port: PORT, version });
+    const adapterProvider = createProvider(BaileysProvider, {
+        port: PORT,
+        version,
+        writeMyself: 'both',
+    });
 
     const { httpServer } = await createBot({
         flow: adapterFlow,
