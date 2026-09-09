@@ -3,5 +3,6 @@
   "tasaBCV": "",
   "lastUpdated": null,
   "updatedBy": null,
-  "adminGroups": []
+  "adminGroups": [],
+  "isPaused": false
 }
