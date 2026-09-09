@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GENERAL_CATALOG } from '../config/data.js';
+import { GENERAL_CATALOG, CATALOG_SECTIONS } from '../config/data.js';
 import { formatVenezuelaDate, arePhoneNumbersEqual, sanitizePhone } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
@@ -215,6 +215,23 @@ class StoreService {
         }
 
         return sections.join('\n\n');
+    }
+
+    /**
+     * Obtiene las secciones del catálogo listas para ser enviadas por bloques en WhatsApp
+     * @returns {string[]}
+     */
+    getCatalogSections() {
+        if (this.data.customCatalog) {
+            return [this.getFormattedCatalog()];
+        }
+
+        const list = [];
+        if (this.data.tasaBCV) {
+            list.push(`🇻🇪 *Tasa oficial del día:* ${this.data.tasaBCV} Bs/$`);
+        }
+        list.push(...CATALOG_SECTIONS);
+        return list;
     }
 }
 

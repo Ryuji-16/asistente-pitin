@@ -28,7 +28,17 @@ export const flowOrder = addKeyword(['2', '2️⃣', 'pedido', 'pedir', 'comprar
         }
     )
     .addAnswer(
-        '¿Qué *productos y cantidades* deseas pedir?\n\n_Ejemplo: 2 kg de milanesa de pechuga, 1 pack de tenders, 1 kg de alas sin punta..._',
+        [
+            '¿Qué *productos o paquetes empaquetados* deseas pedir?',
+            '',
+            '💡 *Ejemplos de paquetes listos:*',
+            '• 1 bolsa de 5 Kg de milanesa de pechuga',
+            '• 1 bolsa mini de 2 Kg de muslos enteros',
+            '• 1 pack de tenders Maella',
+            '• 1 queso duro y 1 paquete de chistorra Montserratina',
+            '',
+            '_(Escribe los productos y cantidades que deseas en un solo mensaje)_:'
+        ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, endFlow }) => {
             if (isCancelRequest(ctx.body)) {
