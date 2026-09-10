@@ -55,11 +55,19 @@ export function arePhoneNumbersEqual(p1 = '', p2 = '') {
  */
 export function getQuotedMessageId(ctx) {
     if (!ctx) return null;
+    const msg =
+        ctx.message?.ephemeralMessage?.message ||
+        ctx.message?.viewOnceMessage?.message ||
+        ctx.message?.viewOnceMessageV2?.message ||
+        ctx.message;
+
     return (
-        ctx.message?.extendedTextMessage?.contextInfo?.stanzaId ||
-        ctx.message?.imageMessage?.contextInfo?.stanzaId ||
-        ctx.message?.documentMessage?.contextInfo?.stanzaId ||
+        msg?.extendedTextMessage?.contextInfo?.stanzaId ||
+        msg?.imageMessage?.contextInfo?.stanzaId ||
+        msg?.documentMessage?.contextInfo?.stanzaId ||
+        msg?.videoMessage?.contextInfo?.stanzaId ||
         ctx.contextInfo?.stanzaId ||
+        ctx.quoted?.id ||
         null
     );
 }

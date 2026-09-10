@@ -13,6 +13,11 @@ export const flowWelcome = addKeyword([
             return endFlow();
         }
 
+        // Nunca responder el menú de bienvenida en grupos de WhatsApp
+        if (ctx.from?.endsWith('@g.us') || ctx.key?.remoteJid?.endsWith('@g.us')) {
+            return endFlow();
+        }
+
         // Si el cliente consultó un precio o producto directamente y llegó a welcome/fallback
         const productAnswer = catalogSearchService.searchProductPrice(ctx.body);
         if (productAnswer) {

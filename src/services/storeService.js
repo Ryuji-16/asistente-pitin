@@ -156,7 +156,7 @@ class StoreService {
         }
 
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
-        const participant = ctx.key?.participant || ctx.from || '';
+        const participant = ctx.key?.participantAlt || ctx.key?.participant || ctx.participant || ctx.from || '';
 
         // 1. Verificar si proviene de algún grupo registrado (pedidos, actualizaciones o general)
         const allGroups = [
@@ -181,6 +181,18 @@ class StoreService {
     }
 
     /**
+     * Limpia todos los grupos registrados (pedidos, actualizaciones y generales)
+     */
+    clearGroups() {
+        this.data.adminGroups = [];
+        this.data.ordersGroups = [];
+        this.data.updatesGroups = [];
+        this.save();
+        logger.info('Todos los grupos registrados han sido desvinculados.');
+        return this.data;
+    }
+
+    /**
      * Verifica si el remitente es el administrador principal (para tareas criticas como registrar grupos)
      * @param {Object} ctx Contexto del mensaje de BuilderBot
      * @returns {boolean}
@@ -195,7 +207,7 @@ class StoreService {
             return true;
         }
 
-        const participant = ctx.key?.participant || ctx.from || '';
+        const participant = ctx.key?.participantAlt || ctx.key?.participant || ctx.participant || ctx.from || '';
         const adminPhone = process.env.ADMIN_PHONE || '04142634053';
         const phones = adminPhone.split(',').map(p => p.trim());
         for (const p of phones) {

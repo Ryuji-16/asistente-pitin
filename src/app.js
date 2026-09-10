@@ -6,6 +6,7 @@ import { fetchLatestBaileysVersion } from 'baileys';
 import { botFlows } from './flows/index.js';
 import { logger } from './utils/logger.js';
 import { BUSINESS_INFO } from './config/data.js';
+import { enableGroupSupport } from './services/baileysGroupAdapter.js';
 
 const PORT = process.env.PORT || 3008;
 
@@ -24,7 +25,11 @@ const main = async () => {
         port: PORT,
         version,
         writeMyself: 'both',
+        groupsIgnore: false,
     });
+
+    // Activar receptor de comandos y multimedia en grupos de WhatsApp
+    enableGroupSupport(adapterProvider);
 
     const { httpServer } = await createBot({
         flow: adapterFlow,

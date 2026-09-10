@@ -4,5 +4,7 @@
   "lastUpdated": null,
   "updatedBy": null,
   "adminGroups": [],
+  "ordersGroups": [],
+  "updatesGroups": [],
   "isPaused": false
 }

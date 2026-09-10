@@ -53,6 +53,23 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
             ].join('\n'));
         }
 
+        // 1.1 Limpiar o desvincular grupos
+        if (text.toLowerCase() === '#grupos limpiar' || text.toLowerCase() === '#grupo reiniciar' || text.toLowerCase() === '#desvincular') {
+            if (!storeService.isSuperAdmin(ctx)) {
+                return await flowDynamic('⚠️ Solo el administrador principal puede desvincular los grupos.');
+            }
+            storeService.clearGroups();
+            return await flowDynamic([
+                '🔄 *GRUPOS DESVINCULADOS CON ÉXITO* 🍗',
+                '═════════════════════════════════',
+                'Se han desvinculado todos los grupos del sistema.',
+                '',
+                '👉 Para volver a vincularlos, escribe dentro de cada grupo:',
+                '• `#grupo pedidos` (en el grupo de despacho)',
+                '• `#grupo actualizaciones` (en el grupo administrativo)'
+            ].join('\n'));
+        }
+
         // 2. Ver grupos vinculados
         if (text.toLowerCase() === '#grupos') {
             const store = storeService.getStore();
@@ -61,17 +78,19 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
             const generals = store.adminGroups || [];
 
             return await flowDynamic([
-                '👥 *GRUPOS VINCULADOS EN ASISTENTE PITÍN*',
+                '👥 *ESTADO DE GRUPOS EN ASISTENTE PITÍN*',
                 '═════════════════════════════════',
-                `📦 *Grupos de Pedidos y Despacho:* ${orders.length} vinculado(s)`,
-                `📊 *Grupos de Actualizaciones:* ${updates.length} vinculado(s)`,
-                `🍗 *Grupos Generales (Ambos):* ${generals.length} vinculado(s)`,
+                `📦 *Grupo de Pedidos y Despacho:* ${orders.length ? `✅ Vinculado (${orders.length})` : '❌ Pendiente'}`,
+                `📊 *Grupo de Actualizaciones:* ${updates.length ? `✅ Vinculado (${updates.length})` : '❌ Pendiente'}`,
+                `🍗 *Grupos Generales (Ambos):* ${generals.length ? `✅ Vinculado (${generals.length})` : 'Ninguno'}`,
                 '═════════════════════════════════',
                 '💡 *Para vincular un grupo nuevo:*',
                 'Escribe dentro del grupo correspondiente:',
                 '• `#grupo pedidos` (para despacho de órdenes y tickets)',
                 '• `#grupo actualizaciones` (para tasas y promociones)',
-                '• `#grupo` (para todo en un solo grupo)'
+                '• `#grupo` (para todo en un solo grupo)',
+                '',
+                '🔄 *Para reiniciar:* Escribe `#grupos limpiar`'
             ].join('\n'));
         }
 
