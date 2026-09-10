@@ -149,6 +149,12 @@ class StoreService {
         if (!ctx) return false;
         if (ctx.key?.fromMe) return true;
 
+        const text = (ctx.body || '').trim().toLowerCase();
+        // Permitir comandos de vinculación de grupo para su procesamiento
+        if (text.startsWith('#grupo')) {
+            return true;
+        }
+
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         const participant = ctx.key?.participant || ctx.from || '';
 
@@ -183,6 +189,12 @@ class StoreService {
         if (!ctx) return false;
         if (ctx.key?.fromMe) return true;
 
+        // Permitir vincular los grupos si aún no hay 2 grupos configurados
+        const total = (this.data.adminGroups?.length || 0) + (this.data.ordersGroups?.length || 0) + (this.data.updatesGroups?.length || 0);
+        if (total < 2) {
+            return true;
+        }
+
         const participant = ctx.key?.participant || ctx.from || '';
         const adminPhone = process.env.ADMIN_PHONE || '04142634053';
         const phones = adminPhone.split(',').map(p => p.trim());
@@ -190,12 +202,6 @@ class StoreService {
             if (arePhoneNumbersEqual(participant, p) || arePhoneNumbersEqual(ctx.from, p)) {
                 return true;
             }
-        }
-
-        // Si es la primera vez y aún no hay ningún grupo registrado, permitir el registro
-        const total = (this.data.adminGroups?.length || 0) + (this.data.ordersGroups?.length || 0) + (this.data.updatesGroups?.length || 0);
-        if (total === 0) {
-            return true;
         }
 
         // Si el mensaje proviene de un grupo ya registrado
