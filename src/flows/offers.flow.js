@@ -8,17 +8,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const assetsDir = path.resolve(__dirname, '../../assets');
 
-export const flowOffers = addKeyword(['1', '1️⃣', 'oferta', 'ofertas', 'promocion', 'promociones', 'precios', 'catalogo', 'ver ofertas'])
+export const flowOffers = addKeyword([
+    '1', '1️⃣', 'oferta', 'ofertas', 'promocion', 'promociones',
+    'catalogo', 'catálogo', 'lista de precios', 'ver ofertas', 'ver catalogo', 'ver catálogo'
+])
     .addAction(async (_, { endFlow }) => {
         if (storeService.isPaused()) {
             return endFlow();
         }
     })
-    .addAnswer('🍗 *¡LISTA DE PRECIOS Y PRODUCTOS EMPAQUETADOS - PITAPOLLO!*')
+    .addAnswer('🍗 *¡CATÁLOGO Y LISTA DE PRECIOS - PITAPOLLO!*')
     .addAction(async (_, { flowDynamic }) => {
-        // 1. Si existe un catálogo en PDF en assets, enviarlo como documento
+        const catalogoPdf = path.join(assetsDir, 'catalogo.pdf');
         const pdfCandidates = [
-            path.join(assetsDir, 'catalogo.pdf'),
+            catalogoPdf,
             path.join(assetsDir, 'catalogo_pitapollo.pdf'),
             path.join(assetsDir, 'lista_precios.pdf')
         ];
@@ -27,24 +30,36 @@ export const flowOffers = addKeyword(['1', '1️⃣', 'oferta', 'ofertas', 'prom
         if (existingPdf) {
             await flowDynamic([
                 {
-                    body: '📄 *Aquí tienes nuestra lista de precios completa en PDF para guardar y compartir:*',
+                    body: '📄 *Aquí tienes nuestro Catálogo y Lista de Precios Oficial de PitaPollo en formato PDF con todos nuestros cortes, combos y congelados.*',
                     media: existingPdf
                 }
             ]);
-        }
 
-        // 2. Envío de las secciones del catálogo completas y organizadas
-        const sections = storeService.getCatalogSections();
-        for (const section of sections) {
-            await flowDynamic(section);
+            await flowDynamic(
+                [
+                    '💡 *¿Buscas el precio de algún producto en específico?*',
+                    'Puedes preguntarme directamente en cualquier momento (ej: *¿a cómo está la pechuga?*, *precio de las alas*, *milanesa*, *queso duro*, *costillas*, etc.) y te daré el precio al instante.',
+                    '',
+                    '¿Qué te gustaría hacer ahora?',
+                    '• Responde *2* para *Hacer un Pedido*',
+                    '• Responde *3* para ver *Métodos de Pago*',
+                    '• Responde *menu* para volver al Menú Principal'
+                ].join('\n')
+            );
+        } else {
+            // Fallback en caso de que no se encuentre el archivo PDF en assets
+            const sections = storeService.getCatalogSections();
+            for (const section of sections) {
+                await flowDynamic(section);
+            }
+            await flowDynamic(
+                [
+                    '¿Qué te gustaría hacer ahora?',
+                    '',
+                    '• Responde *2* para *Hacer un Pedido*',
+                    '• Responde *3* para ver *Métodos de Pago*',
+                    '• Responde *menu* para volver al Menú Principal'
+                ].join('\n')
+            );
         }
-    })
-    .addAnswer(
-        [
-            '¿Qué te gustaría hacer ahora?',
-            '',
-            '• Responde *2* para *Hacer un Pedido*',
-            '• Responde *3* para ver *Métodos de Pago*',
-            '• Responde *menu* para volver al Menú Principal'
-        ].join('\n')
-    );
+    });
