@@ -151,7 +151,7 @@ class StoreService {
 
         const text = (ctx.body || '').trim().toLowerCase();
         // Permitir comandos de vinculación de grupo para su procesamiento
-        if (text.startsWith('#grupo')) {
+        if (text.startsWith('#grupo') || text.startsWith('grupo ') || text === '#pedidos' || text === '#actualizaciones' || text === '#despacho' || text === '#grupos' || text === 'grupos') {
             return true;
         }
 

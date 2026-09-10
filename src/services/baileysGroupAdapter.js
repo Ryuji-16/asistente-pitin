@@ -44,7 +44,7 @@ function attachGroupListener(adapterProvider, sockEv) {
     sockEv.on('messages.upsert', async (upsertEvent) => {
         try {
             const { messages, type } = upsertEvent || {};
-            if (type !== 'notify' || !Array.isArray(messages)) return;
+            if (!['notify', 'append'].includes(type) || !Array.isArray(messages)) return;
 
             for (const messageCtx of messages) {
                 const remoteJid = messageCtx?.key?.remoteJid || '';
@@ -55,11 +55,14 @@ function attachGroupListener(adapterProvider, sockEv) {
                     continue;
                 }
 
-                // Prevenir procesamiento duplicado
+                // Prevenir procesamiento duplicado local y con BaileysProvider
                 const msgId = messageCtx?.key?.id;
+                const dedupKey = `${msgId}__${remoteJid}`;
                 if (msgId) {
-                    const dedupKey = `${msgId}__${remoteJid}`;
                     if (processedMessageIds.has(dedupKey)) {
+                        continue;
+                    }
+                    if (adapterProvider.idsDuplicates?.includes(dedupKey)) {
                         continue;
                     }
                     processedMessageIds.add(dedupKey);
@@ -94,7 +97,15 @@ function attachGroupListener(adapterProvider, sockEv) {
                 const hasDoc = !!(msgContent?.documentMessage || msgContent?.documentWithCaptionMessage);
 
                 const trimmedText = textToBody.trim();
-                const isCommand = trimmedText.startsWith('#');
+                const lowerText = trimmedText.toLowerCase();
+                const isCommand =
+                    trimmedText.startsWith('#') ||
+                    lowerText.startsWith('grupo ') ||
+                    lowerText === '#pedidos' ||
+                    lowerText === '#actualizaciones' ||
+                    lowerText === '#despacho' ||
+                    lowerText === 'pedidos' ||
+                    lowerText === 'actualizaciones';
                 const isMedia = hasImage || hasDoc;
 
                 // REGLA CLAVE: En los grupos SOLO procesamos:

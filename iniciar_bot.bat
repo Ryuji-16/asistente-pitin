@@ -43,5 +43,6 @@ echo (Si necesitas escanear el QR, puedes abrir: http://localhost:3008)
 echo ============================================================
 echo.
 
+node src/patch-baileys.js
 node src/app.js
 pause

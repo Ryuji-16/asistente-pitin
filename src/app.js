@@ -1,3 +1,4 @@
+import './patch-baileys.js';
 import 'dotenv/config';
 import { createBot, createProvider, createFlow, MemoryDB } from '@builderbot/bot';
 import { BaileysProvider } from '@builderbot/provider-baileys';
@@ -26,6 +27,7 @@ const main = async () => {
         version,
         writeMyself: 'both',
         groupsIgnore: false,
+        emitOwnEvents: true,
     });
 
     // Activar receptor de comandos y multimedia en grupos de WhatsApp

@@ -3,7 +3,12 @@ import { storeService } from '../services/storeService.js';
 import { formatVenezuelaDate } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
-export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda', '#grupo', '#grupos', '#pausar', '#activar'])
+export const flowAdmin = addKeyword([
+    '#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda',
+    '#grupo', '#grupos', '#pausar', '#activar',
+    '#pedidos', '#despacho', '#actualizaciones',
+    'grupo pedidos', 'grupo actualizaciones', 'grupo despacho', 'grupo ordenes'
+])
     .addAction(async (ctx, { flowDynamic, endFlow }) => {
         // Validación estricta de autorización
         if (!storeService.isAdmin(ctx)) {
@@ -12,6 +17,7 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
         }
 
         const text = (ctx.body || '').trim();
+        const lower = text.toLowerCase();
         const sender = ctx.pushName || ctx.from;
 
         // 0. Comandos de pausa y activación
@@ -95,7 +101,7 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
         }
 
         // 3. Registrar grupo
-        if (text.toLowerCase().startsWith('#grupo')) {
+        if (lower.startsWith('#grupo') || lower.startsWith('grupo ') || lower === '#pedidos' || lower === '#actualizaciones' || lower === '#despacho') {
             if (!storeService.isSuperAdmin(ctx)) {
                 return await flowDynamic('⚠️ Solo el número del administrador principal puede autorizar nuevos grupos con `#grupo`.');
             }
@@ -105,7 +111,11 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
                 return await flowDynamic('⚠️ Este comando debe enviarse **dentro del grupo de WhatsApp** que deseas vincular.');
             }
 
-            const subCmd = text.toLowerCase().replace('#grupo', '').trim();
+            let subCmd = lower
+                .replace('#grupo', '')
+                .replace('grupo', '')
+                .replace('#', '')
+                .trim();
 
             if (subCmd === 'pedidos' || subCmd === 'despacho' || subCmd === 'ordenes') {
                 storeService.registerOrdersGroup(groupId);
