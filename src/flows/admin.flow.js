@@ -3,7 +3,7 @@ import { storeService } from '../services/storeService.js';
 import { formatVenezuelaDate } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
-export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda', '#grupo', '#pausar', '#activar'])
+export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda', '#grupo', '#grupos', '#pausar', '#activar'])
     .addAction(async (ctx, { flowDynamic, endFlow }) => {
         // Validación estricta de autorización
         if (!storeService.isAdmin(ctx)) {
@@ -40,26 +40,90 @@ export const flowAdmin = addKeyword(['#precios', '#actualizar', '#ofertas', '#ta
             return await flowDynamic([
                 '🛠️ *COMANDOS DE ADMINISTRACIÓN PITAPOLLO*',
                 '═════════════════════════════════',
-                '• `#pausar` -> Pausa las respuestas automáticas del bot a los clientes.',
+                '• `#pausar` -> Pausa las respuestas automáticas a los clientes.',
                 '• `#activar` -> Reactiva las respuestas automáticas.',
+                '• `#tasa [monto]` -> Actualiza la tasa del día (ej: `#tasa 65.50`).',
                 '• `#precios [texto]` -> Actualiza la lista de precios y ofertas.',
-                '• `#tasa [monto]` -> Actualiza la tasa del día en bolívares.',
-                '• `#ver` o `#estado` -> Muestra la lista y estado actual del bot.',
-                '• `#grupo` -> Registra el grupo actual para actualizaciones.',
+                '• `#ver` o `#estado` -> Muestra el estado y catálogo actual.',
+                '• `#grupo pedidos` -> Vincula el grupo para recibir pedidos y tickets.',
+                '• `#grupo actualizaciones` -> Vincula el grupo para tasa y precios.',
+                '• `#grupo` -> Vincula el grupo para ambas funciones.',
+                '• `#grupos` -> Muestra la lista de grupos vinculados.',
                 '═════════════════════════════════'
             ].join('\n'));
         }
 
-        // 2. Registrar grupo de administración
-        if (text.toLowerCase() === '#grupo') {
+        // 2. Ver grupos vinculados
+        if (text.toLowerCase() === '#grupos') {
+            const store = storeService.getStore();
+            const orders = store.ordersGroups || [];
+            const updates = store.updatesGroups || [];
+            const generals = store.adminGroups || [];
+
+            return await flowDynamic([
+                '👥 *GRUPOS VINCULADOS EN ASISTENTE PITÍN*',
+                '═════════════════════════════════',
+                `📦 *Grupos de Pedidos y Despacho:* ${orders.length} vinculado(s)`,
+                `📊 *Grupos de Actualizaciones:* ${updates.length} vinculado(s)`,
+                `🍗 *Grupos Generales (Ambos):* ${generals.length} vinculado(s)`,
+                '═════════════════════════════════',
+                '💡 *Para vincular un grupo nuevo:*',
+                'Escribe dentro del grupo correspondiente:',
+                '• `#grupo pedidos` (para despacho de órdenes y tickets)',
+                '• `#grupo actualizaciones` (para tasas y promociones)',
+                '• `#grupo` (para todo en un solo grupo)'
+            ].join('\n'));
+        }
+
+        // 3. Registrar grupo
+        if (text.toLowerCase().startsWith('#grupo')) {
             if (!storeService.isSuperAdmin(ctx)) {
                 return await flowDynamic('⚠️ Solo el número del administrador principal puede autorizar nuevos grupos con `#grupo`.');
             }
+
             const groupId = ctx.key?.remoteJid || ctx.from;
+            if (!groupId.endsWith('@g.us')) {
+                return await flowDynamic('⚠️ Este comando debe enviarse **dentro del grupo de WhatsApp** que deseas vincular.');
+            }
+
+            const subCmd = text.toLowerCase().replace('#grupo', '').trim();
+
+            if (subCmd === 'pedidos' || subCmd === 'despacho' || subCmd === 'ordenes') {
+                storeService.registerOrdersGroup(groupId);
+                return await flowDynamic([
+                    '✅ *¡GRUPO DE PEDIDOS Y DESPACHO VINCULADO!* 🍗📦',
+                    '═════════════════════════════════',
+                    'A partir de ahora, todos los nuevos pedidos de los clientes llegarán a este grupo.',
+                    '',
+                    '👉 *Flujo para cajeros y despachadores:*',
+                    '1. Responde al mensaje del pedido con la *FOTO del ticket facturado*.',
+                    '2. Responde `#ok` para confirmar el pago.',
+                    '3. Responde `#camino` cuando el delivery salga con el pedido.',
+                    '4. Responde `#listo` cuando esté empacado para retiro.'
+                ].join('\n'));
+            }
+
+            if (subCmd === 'actualizaciones' || subCmd === 'precios' || subCmd === 'tasa' || subCmd === 'admin') {
+                storeService.registerUpdatesGroup(groupId);
+                return await flowDynamic([
+                    '✅ *¡GRUPO DE ACTUALIZACIONES VINCULADO!* 📊✨',
+                    '═════════════════════════════════',
+                    'Este grupo quedó autorizado para administración y actualizaciones de PitaPollo.',
+                    '',
+                    '👉 *Comandos disponibles aquí:*',
+                    '• `#tasa <monto>` -> Actualiza la tasa BCV oficial (ej: `#tasa 65.50`).',
+                    '• `#precios <texto>` -> Actualiza el texto de promociones.',
+                    '• `#pausar` / `#activar` -> Pausa o reactiva el bot para clientes.',
+                    '• `#ver` -> Muestra el estado actual.'
+                ].join('\n'));
+            }
+
+            // Registro general (#grupo)
             storeService.registerAdminGroup(groupId);
             return await flowDynamic([
-                '✅ *¡Grupo registrado como canal de administración!*',
-                'A partir de ahora puedes enviar o actualizar precios desde aquí y se recibirán los avisos de pedidos.'
+                '✅ *¡GRUPO OFICIAL VINCULADO!* 🍗📱',
+                '═════════════════════════════════',
+                'Este grupo quedó registrado tanto para recibir *Pedidos y Despacho* como para *Actualizaciones* (#tasa, #precios, #pausar, etc.).'
             ].join('\n'));
         }
 

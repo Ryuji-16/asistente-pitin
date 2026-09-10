@@ -170,7 +170,7 @@ export const flowOrder = addKeyword(['2', '2️⃣', 'pedido', 'pedir', 'comprar
 
             // 3. Notificar al grupo de despacho de la tienda e iniciar el hilo
             const storeNotice = orderService.buildStoreNotification(order);
-            const adminGroups = storeService.getStore().adminGroups || [];
+            const adminGroups = storeService.getOrdersGroups();
 
             for (const groupId of adminGroups) {
                 try {

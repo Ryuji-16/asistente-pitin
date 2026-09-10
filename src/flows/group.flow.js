@@ -11,8 +11,8 @@ export const flowGroup = addKeyword(['#ok', '#camino', '#listo', '#cancelar'])
     .addAction(async (ctx, { flowDynamic, provider, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
 
-        // Solo procesar si proviene de un grupo registrado de administración
-        const adminGroups = storeService.getStore().adminGroups || [];
+        // Solo procesar si proviene de un grupo registrado de pedidos o administracion
+        const adminGroups = storeService.getOrdersGroups();
         if (!adminGroups.includes(remoteJid)) {
             return endFlow();
         }

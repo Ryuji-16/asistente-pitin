@@ -24,6 +24,8 @@ class StoreService {
             lastUpdated: null,
             updatedBy: null,
             adminGroups: [],
+            ordersGroups: [],
+            updatesGroups: [],
             isPaused: false,
         };
 
@@ -82,15 +84,60 @@ class StoreService {
     }
 
     /**
-     * Registra un grupo como autorizado para actualizaciones
+     * Registra un grupo para recepción de pedidos y despacho
+     * @param {string} groupId
+     */
+    registerOrdersGroup(groupId) {
+        if (!this.data.ordersGroups) this.data.ordersGroups = [];
+        if (!this.data.ordersGroups.includes(groupId)) {
+            this.data.ordersGroups.push(groupId);
+            this.save();
+            logger.success(`Grupo de PEDIDOS registrado: ${groupId}`);
+        }
+    }
+
+    /**
+     * Registra un grupo para actualizaciones de precios y tasa
+     * @param {string} groupId
+     */
+    registerUpdatesGroup(groupId) {
+        if (!this.data.updatesGroups) this.data.updatesGroups = [];
+        if (!this.data.updatesGroups.includes(groupId)) {
+            this.data.updatesGroups.push(groupId);
+            this.save();
+            logger.success(`Grupo de ACTUALIZACIONES registrado: ${groupId}`);
+        }
+    }
+
+    /**
+     * Registra un grupo como autorizado general (pedidos y actualizaciones)
      * @param {string} groupId
      */
     registerAdminGroup(groupId) {
+        if (!this.data.adminGroups) this.data.adminGroups = [];
         if (!this.data.adminGroups.includes(groupId)) {
             this.data.adminGroups.push(groupId);
             this.save();
-            logger.success(`Grupo de administración registrado: ${groupId}`);
+            logger.success(`Grupo de administración general registrado: ${groupId}`);
         }
+    }
+
+    /**
+     * Obtiene todos los grupos que deben recibir notificaciones de nuevos pedidos
+     * @returns {string[]}
+     */
+    getOrdersGroups() {
+        const set = new Set([...(this.data.ordersGroups || []), ...(this.data.adminGroups || [])]);
+        return Array.from(set);
+    }
+
+    /**
+     * Obtiene todos los grupos autorizados para actualizaciones
+     * @returns {string[]}
+     */
+    getUpdatesGroups() {
+        const set = new Set([...(this.data.updatesGroups || []), ...(this.data.adminGroups || [])]);
+        return Array.from(set);
     }
 
     /**
@@ -100,19 +147,28 @@ class StoreService {
      */
     isAdmin(ctx) {
         if (!ctx) return false;
+        if (ctx.key?.fromMe) return true;
 
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         const participant = ctx.key?.participant || ctx.from || '';
 
-        // 1. Verificar si proviene de un grupo registrado de administracion
-        if (Array.isArray(this.data.adminGroups) && this.data.adminGroups.includes(remoteJid)) {
+        // 1. Verificar si proviene de algún grupo registrado (pedidos, actualizaciones o general)
+        const allGroups = [
+            ...(this.data.adminGroups || []),
+            ...(this.data.ordersGroups || []),
+            ...(this.data.updatesGroups || [])
+        ];
+        if (allGroups.includes(remoteJid)) {
             return true;
         }
 
-        // 2. Verificar si el telefono del remitente coincide con ADMIN_PHONE
+        // 2. Verificar si el teléfono coincide con ADMIN_PHONE (soporta varios separados por coma)
         const adminPhone = process.env.ADMIN_PHONE || '04142634053';
-        if (arePhoneNumbersEqual(participant, adminPhone) || arePhoneNumbersEqual(ctx.from, adminPhone)) {
-            return true;
+        const phones = adminPhone.split(',').map(p => p.trim());
+        for (const p of phones) {
+            if (arePhoneNumbersEqual(participant, p) || arePhoneNumbersEqual(ctx.from, p)) {
+                return true;
+            }
         }
 
         return false;
@@ -125,9 +181,35 @@ class StoreService {
      */
     isSuperAdmin(ctx) {
         if (!ctx) return false;
+        if (ctx.key?.fromMe) return true;
+
         const participant = ctx.key?.participant || ctx.from || '';
         const adminPhone = process.env.ADMIN_PHONE || '04142634053';
-        return arePhoneNumbersEqual(participant, adminPhone) || arePhoneNumbersEqual(ctx.from, adminPhone);
+        const phones = adminPhone.split(',').map(p => p.trim());
+        for (const p of phones) {
+            if (arePhoneNumbersEqual(participant, p) || arePhoneNumbersEqual(ctx.from, p)) {
+                return true;
+            }
+        }
+
+        // Si es la primera vez y aún no hay ningún grupo registrado, permitir el registro
+        const total = (this.data.adminGroups?.length || 0) + (this.data.ordersGroups?.length || 0) + (this.data.updatesGroups?.length || 0);
+        if (total === 0) {
+            return true;
+        }
+
+        // Si el mensaje proviene de un grupo ya registrado
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        const allGroups = [
+            ...(this.data.adminGroups || []),
+            ...(this.data.ordersGroups || []),
+            ...(this.data.updatesGroups || [])
+        ];
+        if (allGroups.includes(remoteJid)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

@@ -13,7 +13,7 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
         }
 
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
-        const adminGroups = storeService.getStore().adminGroups || [];
+        const adminGroups = storeService.getOrdersGroups();
         const isFromAdminGroup = adminGroups.includes(remoteJid);
 
         // =========================================================================
