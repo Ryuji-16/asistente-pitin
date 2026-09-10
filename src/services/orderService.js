@@ -147,7 +147,11 @@ class OrderService {
             `🛵 *Modalidad:* ${isDelivery ? 'Delivery' : 'Retiro en tienda (La Trinidad)'}`,
             isDelivery && address ? `📍 *Dirección de entrega:* ${address}` : '',
             isDelivery && mapUrl ? `🗺️ *Ubicación GPS:* ${mapUrl}` : '',
-            isDelivery && deliveryFee ? `💰 *Delivery sugerido:* $${Number(deliveryFee).toFixed(2)} (${deliveryLabel || 'Tarifa de zona'})` : '',
+            isDelivery
+                ? (deliveryFee !== null && deliveryFee !== undefined
+                    ? `💰 *Delivery:* $${Number(deliveryFee).toFixed(2)} (${deliveryLabel || 'Tarifa de zona'})`
+                    : '💰 *Delivery:* Por verificar con el monto total (Zona a cotizar)')
+                : '',
             `💳 *Método de pago:* ${paymentChoice || 'A convenir'}`,
             '═══════════════════════════════',
             '',
@@ -183,7 +187,11 @@ class OrderService {
             `🛵 *Modalidad:* ${order.isDelivery ? 'Delivery' : 'Retiro en tienda (La Trinidad)'}`,
             order.isDelivery && order.address ? `📍 *Dirección:* ${order.address}` : '',
             order.isDelivery && mapUrl ? `🗺️ *GPS:* ${mapUrl}` : '',
-            order.isDelivery && order.deliveryFee ? `💰 *Delivery sugerido:* $${Number(order.deliveryFee).toFixed(2)} (${order.deliveryLabel})` : '',
+            order.isDelivery
+                ? (order.deliveryFee !== null && order.deliveryFee !== undefined
+                    ? `💰 *Delivery:* $${Number(order.deliveryFee).toFixed(2)} (${order.deliveryLabel})`
+                    : '💰 *Delivery:* ⚠️ Por verificar con el monto total (Zona fuera de lista habitual)')
+                : '',
             `💳 *Método de Pago:* ${order.paymentChoice}`,
             '═══════════════════════════════',
             '',

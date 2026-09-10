@@ -9,37 +9,209 @@ export const STORE_LOCATION = {
     longitude: -66.8601,
 };
 
-// Tarifas fijas por nivel de distancia y zonas frecuentes
+/**
+ * Normaliza texto para búsqueda de zonas (minúsculas, sin tildes, sin signos)
+ */
+export function normalizeZoneName(text = '') {
+    return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[¿?¡!.,:;()_/\-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Tarifas fijas oficiales y zonas de cobertura de PitaPollo
+ */
 export const DELIVERY_TIERS = [
     {
         tier: 1,
         fee: 3.50,
-        maxKm: 3.5,
-        zones: ['la trinidad', 'sorocaima', 'zona industrial', 'los samanes', 'las minas', 'baruta'],
-        label: 'Zona Corta (La Trinidad / Baruta cercana)'
+        label: 'Zona 1 ($3.50)',
+        maxKm: 4.2,
+        zonesList: [
+            'La Trinidad',
+            'Baruta',
+            'La Tahona (parte baja)',
+            'Los Samanes',
+            'Las Minas',
+            'La Maya',
+            'Santa Fe',
+            'Santa Inés',
+            'La Bonita',
+            'Las Danielas',
+            'El Placer de María',
+            'El Peñón',
+            'Club Hípico',
+            'Los Pinos',
+            'La Boyera',
+            'Concresa',
+            'Manzanares'
+        ],
+        keywords: [
+            'la trinidad',
+            'trinidad',
+            'baruta',
+            'la tahona parte baja',
+            'la tahona baja',
+            'tahona parte baja',
+            'tahona baja',
+            'la tahona',
+            'tahona',
+            'los samanes',
+            'samanes',
+            'las minas',
+            'minas de baruta',
+            'la maya',
+            'santa fe norte',
+            'santa fe sur',
+            'santa fe',
+            'santa ines',
+            'la bonita',
+            'las danielas',
+            'danielas',
+            'el placer de maria',
+            'placer de maria',
+            'el placer',
+            'el penon',
+            'penon',
+            'club hipico',
+            'los pinos',
+            'la boyera',
+            'boyera',
+            'concresa',
+            'manzanares',
+            'manzanare'
+        ]
     },
     {
         tier: 2,
         fee: 5.00,
-        maxKm: 7.0,
-        zones: ['prados del este', 'la tahona', 'el hatillo', 'la boyera', 'santa fe', 'cumbres de curumo', 'los campitos', 'santa ines'],
-        label: 'Zona Media (El Hatillo / Prados del Este / Santa Fe)'
+        label: 'Zona 2 ($5.00)',
+        maxKm: 7.5,
+        zonesList: [
+            'Prados del Este',
+            'Alto Prado',
+            'Valle Arriba',
+            'Las Mercedes',
+            'Los Campitos',
+            'Colinas de La Tahona',
+            'El Cigarral',
+            'El Hatillo'
+        ],
+        keywords: [
+            'colinas de la tahona',
+            'colinas de tahona',
+            'prados del este',
+            'alto prado',
+            'valle arriba',
+            'las mercedes',
+            'mercedes',
+            'los campitos',
+            'campitos',
+            'el cigarral',
+            'cigarral',
+            'el hatillo',
+            'hatillo'
+        ]
     },
     {
         tier: 3,
         fee: 7.00,
-        maxKm: 11.0,
-        zones: ['las mercedes', 'chacao', 'el cafetal', 'chuao', 'los ruices', 'santa paula', 'san roman', 'valle arriba'],
-        label: 'Zona Ampliada (Las Mercedes / Chacao / El Cafetal)'
-    },
-    {
-        tier: 4,
-        fee: 11.00,
-        maxKm: 999.0,
-        zones: ['altamira', 'los palos grandes', 'caricuao', 'el valle', 'centro', 'la florida', 'san bernardino'],
-        label: 'Zona Distante / Doble Viaje por Volumen'
+        label: 'Zona 3 ($7.00)',
+        maxKm: 12.0,
+        zonesList: [
+            'La Lagunita',
+            'La Unión',
+            'Chacao',
+            'El Rosal',
+            'El Cafetal',
+            'Cumbres de Curumo',
+            'Plaza Las Américas',
+            'Cerro Verde',
+            'Los Naranjos',
+            'Los Guayabitos',
+            'Oripoto',
+            'Bello Monte',
+            'Santa Mónica',
+            'CCCT'
+        ],
+        keywords: [
+            'plaza las americas',
+            'cumbres de curumo',
+            'colinas de bello monte',
+            'bello monte',
+            'santa monica',
+            'los guayabitos',
+            'guayabitos',
+            'los naranjos',
+            'naranjos',
+            'cerro verde',
+            'la lagunita',
+            'lagunita',
+            'la union',
+            'chacao',
+            'el rosal',
+            'rosal',
+            'el cafetal',
+            'cafetal',
+            'curumo',
+            'oripoto',
+            'ccct',
+            'c c c t',
+            'centro comercial tamanaco',
+            'tamanaco'
+        ]
     }
 ];
+
+/**
+ * Texto formateado de las zonas y tarifas para mostrar al cliente
+ */
+export const DELIVERY_ZONES_TEXT = [
+    '🛵 *TARIFAS Y ZONAS DE DELIVERY - PITAPOLLO*',
+    '',
+    '🟢 *Zona 1 - $3.50:*',
+    '• La Trinidad, Baruta, La Tahona (parte baja)',
+    '• Los Samanes, Las Minas, La Maya, Santa Fe',
+    '• Santa Inés, La Bonita, Las Danielas',
+    '• El Placer de María, El Peñón, Club Hípico',
+    '• Los Pinos, La Boyera, Concresa, Manzanares',
+    '',
+    '🟡 *Zona 2 - $5.00:*',
+    '• Prados del Este, Alto Prado, Valle Arriba',
+    '• Las Mercedes, Los Campitos, Colinas de La Tahona',
+    '• El Cigarral, El Hatillo',
+    '',
+    '🟠 *Zona 3 - $7.00:*',
+    '• La Lagunita, La Unión, Chacao, El Rosal',
+    '• El Cafetal, Cumbres de Curumo, Plaza Las Américas',
+    '• Cerro Verde, Los Naranjos, Los Guayabitos',
+    '• Oripoto, Bello Monte, Santa Mónica, CCCT',
+    '',
+    '📍 *¿Pides a otra zona de Caracas?*',
+    '¡Con gusto te atendemos! Si tu dirección está fuera de estas zonas, verificaremos el monto del delivery correspondiente y te lo informaremos junto con el monto total de tu pedido.'
+].join('\n');
+
+/**
+ * Prepara lista de palabras clave ordenada por longitud descendente para coincidencias precisas
+ */
+const ALL_ZONE_KEYWORDS = [];
+for (const tier of DELIVERY_TIERS) {
+    for (const kw of tier.keywords) {
+        ALL_ZONE_KEYWORDS.push({
+            keyword: normalizeZoneName(kw),
+            rawZone: kw,
+            tier: tier.tier,
+            fee: tier.fee,
+            label: tier.label
+        });
+    }
+}
+// Ordenar por longitud descendente para que "colinas de la tahona" se evalúe antes de "la tahona"
+ALL_ZONE_KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
 
 /**
  * Calcula la distancia en kilómetros entre dos coordenadas GPS usando la fórmula de Haversine
@@ -70,15 +242,34 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Estima la tarifa de delivery según coordenadas GPS o texto de zona
+ * Estima la tarifa de delivery según el texto de la dirección o coordenadas GPS
  * @param {Object} options
  * @param {number} [options.latitude]
  * @param {number} [options.longitude]
  * @param {string} [options.zoneText]
- * @returns {{ fee: number, tier: number, distanceKm: number|null, label: string, isEstimated: boolean }}
+ * @returns {{ fee: number|null, tier: number|null, distanceKm: number|null, label: string, isOtherZone: boolean, matchedZone?: string }}
  */
 export function estimateDeliveryFee({ latitude, longitude, zoneText = '' }) {
-    // 1. Intentar cálculo exacto por GPS
+    const clean = normalizeZoneName(zoneText);
+
+    // 1. Intentar coincidencia por texto de la zona
+    if (clean) {
+        for (const item of ALL_ZONE_KEYWORDS) {
+            // Coincidencia de subcadena exacta
+            if (clean.includes(item.keyword)) {
+                return {
+                    fee: item.fee,
+                    tier: item.tier,
+                    distanceKm: null,
+                    label: item.label,
+                    matchedZone: item.rawZone,
+                    isOtherZone: false
+                };
+            }
+        }
+    }
+
+    // 2. Intentar cálculo por coordenadas GPS si se enviaron
     if (latitude && longitude) {
         const distance = calculateDistanceKm(
             STORE_LOCATION.latitude,
@@ -95,33 +286,28 @@ export function estimateDeliveryFee({ latitude, longitude, zoneText = '' }) {
                         tier: tier.tier,
                         distanceKm: distance,
                         label: `${tier.label} (~${distance} km)`,
-                        isEstimated: false
+                        isOtherZone: false
                     };
                 }
             }
-        }
-    }
-
-    // 2. Fallback: Búsqueda por palabras clave en la dirección escrita
-    const text = (zoneText || '').toLowerCase();
-    for (const tier of DELIVERY_TIERS) {
-        if (tier.zones.some(zone => text.includes(zone))) {
+            // Si la distancia supera los 12 km (fuera de las 3 zonas fijas)
             return {
-                fee: tier.fee,
-                tier: tier.tier,
-                distanceKm: null,
-                label: tier.label,
-                isEstimated: true
+                fee: null,
+                tier: null,
+                distanceKm: distance,
+                label: `Zona externa (~${distance} km)`,
+                isOtherZone: true
             };
         }
     }
 
-    // 3. Tarifa estándar inicial si no se reconoce la zona (Nivel 1 básico)
+    // 3. Si no coincide con ninguna de las zonas fijas:
+    // El bot indica que se verificará el monto para esa zona con el monto total del pedido
     return {
-        fee: 3.50,
-        tier: 1,
+        fee: null,
+        tier: null,
         distanceKm: null,
-        label: 'Tarifa Base (A confirmar con el ticket)',
-        isEstimated: true
+        label: 'Zona por verificar',
+        isOtherZone: true
     };
 }

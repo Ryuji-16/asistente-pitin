@@ -113,8 +113,12 @@ export const flowOrder = addKeyword(['2', '2️⃣', 'pedido', 'pedir', 'comprar
                 deliveryLabel: feeEst.label
             });
 
-            if (isDelivery && feeEst.fee) {
-                await flowDynamic(`🛵 *Tarifa de delivery sugerida:* $${feeEst.fee.toFixed(2)} (${feeEst.label})`);
+            if (isDelivery) {
+                if (feeEst.fee !== null && feeEst.fee !== undefined) {
+                    await flowDynamic(`🛵 *Tarifa de delivery para tu zona:* $${feeEst.fee.toFixed(2)} (${feeEst.label})`);
+                } else {
+                    await flowDynamic('🛵 *Nota sobre tu zona de entrega:*\nVerificaremos el monto del delivery para tu zona y te diremos cuánto es junto con el monto total de tu pedido.');
+                }
             }
         }
     )

@@ -5,6 +5,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const assetsDir = path.resolve(__dirname, '../../assets');
 
+import { DELIVERY_ZONES_TEXT } from './delivery.js';
+
 export const BUSINESS_INFO = {
     name: 'PitaPollo - La Trinidad',
     assistantName: 'Pitín',
@@ -12,7 +14,7 @@ export const BUSINESS_INFO = {
     instagram: '@pitapolloccs',
     address: 'Calle principal de La Trinidad, Caracas (Referencia: cerca del Farmatodo / zona comercial).',
     schedule: '🕒 Lunes a Sábado: 8:00 AM a 6:00 PM\n🕒 Domingos: 8:30 AM a 2:00 PM',
-    deliveryZones: '🛵 Contamos con servicio de Delivery en La Trinidad, Baruta, El Hatillo, Las Mercedes, Chacao y zonas cercanas de Caracas.',
+    deliveryZones: DELIVERY_ZONES_TEXT,
 };
 
 export const PAYMENT_METHODS = {
