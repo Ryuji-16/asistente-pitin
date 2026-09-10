@@ -62,5 +62,36 @@ export function patchBaileysProvider() {
     }
 }
 
+/**
+ * Aplica el parche a @builderbot/bot para evitar que palabras clave globales
+ * (ej: '1', '2', productos del catálogo, delivery) secuestren las respuestas
+ * cuando el usuario está respondiendo una pregunta activa con capture: true.
+ */
+export function patchBuilderBot() {
+    const rootDir = path.resolve(__dirname, '..');
+    const targetFile = path.join(rootDir, 'node_modules', '@builderbot', 'bot', 'dist', 'index.cjs');
+
+    if (!fs.existsSync(targetFile)) return;
+
+    let content = fs.readFileSync(targetFile, 'utf8');
+    if (content.includes('typeof prevMsg?.options?.capture;')) {
+        content = content.replace(
+            /if \(!endFlowFlag && !prevMsg\?\.options\?\.nested\?\.length\) \{\s*typeof prevMsg\?\.options\?\.capture;\s*\}\s*msgToSend = this\.flowClass\.find\(body\) \|\| \[\];/g,
+            `if (!endFlowFlag && prevMsg?.options?.capture && !['cancelar', 'cancela', 'salir', 'menu', 'inicio'].includes((body || '').trim().toLowerCase())) {
+                msgToSend = [];
+            } else {
+                msgToSend = this.flowClass.find(body) || [];
+            }`
+        );
+        try {
+            fs.writeFileSync(targetFile, content, 'utf8');
+            console.log('[OK] Parche de BuilderBot Core (capture: true) aplicado con éxito.');
+        } catch (err) {
+            console.error('[Aviso] No se pudo escribir parche de BuilderBot:', err.message);
+        }
+    }
+}
+
 // Ejecutar inmediatamente
 patchBaileysProvider();
+patchBuilderBot();

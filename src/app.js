@@ -33,12 +33,36 @@ const main = async () => {
     // Activar receptor de comandos y multimedia en grupos de WhatsApp
     enableGroupSupport(adapterProvider);
 
-    const { httpServer } = await createBot({
+    const bot = await createBot({
         flow: adapterFlow,
         provider: adapterProvider,
         database: adapterDB,
     });
 
+    // Proteger pasos con capture: true contra secuestro por palabras clave globales (ej: '1', '2', productos, delivery)
+    const originalHandleMsg = bot.handleMsg.bind(bot);
+    bot.handleMsg = async (messageCtxInComing) => {
+        const prevMsg = await adapterDB.getPrevByNumber(messageCtxInComing.from);
+        const isCapturing = prevMsg?.options?.capture;
+        const bodyText = (messageCtxInComing.body || '').trim().toLowerCase();
+        const isCancel = ['cancelar', 'cancela', 'salir', 'menu', 'inicio'].includes(bodyText);
+
+        if (isCapturing && !isCancel) {
+            const tempFind = bot.flowClass.find;
+            bot.flowClass.find = (key, isRef, ...rest) => {
+                if (isRef) return tempFind.call(bot.flowClass, key, isRef, ...rest);
+                return [];
+            };
+            try {
+                return await originalHandleMsg(messageCtxInComing);
+            } finally {
+                bot.flowClass.find = tempFind;
+            }
+        }
+        return originalHandleMsg(messageCtxInComing);
+    };
+
+    const { httpServer } = bot;
     httpServer(+PORT);
 
     logger.success(`Servidor web activo en: http://localhost:${PORT}`);
