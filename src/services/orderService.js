@@ -1,5 +1,12 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { sanitizePhone } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ordersFilePath = path.resolve(__dirname, '../data/orders.json');
 
 /**
  * Servicio para gestión y ciclo de vida de pedidos de PitaPollo
@@ -13,6 +20,53 @@ class OrderService {
         /** @type {Map<string, number>} SanitizedPhone -> OrderId */
         this.clientActiveOrder = new Map();
         this.lastOrderId = 1000;
+        this.load();
+    }
+
+    /**
+     * Carga el estado de pedidos desde disco
+     */
+    load() {
+        try {
+            if (fs.existsSync(ordersFilePath)) {
+                const raw = fs.readFileSync(ordersFilePath, 'utf8');
+                const data = JSON.parse(raw);
+                if (data.lastOrderId) this.lastOrderId = data.lastOrderId;
+                if (Array.isArray(data.orders)) {
+                    this.orders = new Map(data.orders);
+                }
+                if (Array.isArray(data.threadMsgMap)) {
+                    this.threadMsgMap = new Map(data.threadMsgMap);
+                }
+                if (Array.isArray(data.clientActiveOrder)) {
+                    this.clientActiveOrder = new Map(data.clientActiveOrder);
+                }
+                logger.info(`Cargados ${this.orders.size} pedidos previos desde orders.json`);
+            }
+        } catch (err) {
+            logger.error('Error al leer orders.json:', err.message);
+        }
+    }
+
+    /**
+     * Guarda el estado actual de pedidos en disco
+     */
+    save() {
+        try {
+            const dir = path.dirname(ordersFilePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            const payload = {
+                lastOrderId: this.lastOrderId,
+                orders: Array.from(this.orders.entries()),
+                threadMsgMap: Array.from(this.threadMsgMap.entries()),
+                clientActiveOrder: Array.from(this.clientActiveOrder.entries()),
+            };
+            fs.writeFileSync(ordersFilePath, JSON.stringify(payload, null, 2), 'utf8');
+        } catch (err) {
+            logger.error('Error al guardar orders.json:', err.message);
+        }
     }
 
     /**
@@ -56,6 +110,7 @@ class OrderService {
         if (order.clientPhone) {
             this.clientActiveOrder.set(order.clientPhone, orderId);
         }
+        this.save();
 
         logger.info(`Pedido #${orderId} creado para ${order.clientName} (${order.clientPhone})`);
         return order;
@@ -74,7 +129,30 @@ class OrderService {
                 order.threadMsgIds.push(messageId);
             }
             this.threadMsgMap.set(messageId, orderId);
+            this.save();
         }
+    }
+
+    /**
+     * Obtiene un pedido por su ID numérico
+     * @param {number|string} orderId
+     * @returns {Object|null}
+     */
+    getOrderById(orderId) {
+        if (!orderId) return null;
+        return this.orders.get(Number(orderId)) || null;
+    }
+
+    /**
+     * Retorna el único pedido pendiente por ticket si solo hay uno en espera en la tienda
+     * @returns {Object|null}
+     */
+    getSinglePendingTicketOrder() {
+        const pending = Array.from(this.orders.values()).filter(o => o.status === 'PENDING_TICKET');
+        if (pending.length === 1) {
+            return pending[0];
+        }
+        return null;
     }
 
     /**
@@ -121,6 +199,7 @@ class OrderService {
             if (['DISPATCHED', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
                 this.clientActiveOrder.delete(order.clientPhone);
             }
+            this.save();
             return order;
         }
         return null;

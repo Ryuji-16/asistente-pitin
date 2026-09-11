@@ -1,7 +1,7 @@
 import { addKeyword } from '@builderbot/bot';
 import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
-import { getQuotedMessageId } from '../utils/formatters.js';
+import { getQuotedMessageId, getQuotedText } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -18,11 +18,19 @@ export const flowGroup = addKeyword(['#ok', '#camino', '#listo', '#cancelar'])
         }
 
         const quotedMsgId = getQuotedMessageId(ctx);
-        if (!quotedMsgId) {
+        const quotedText = getQuotedText(ctx);
+        if (!quotedMsgId && !quotedText) {
             return await flowDynamic('⚠️ Para usar este comando, debes **responder citando** el mensaje del pedido o comprobante.');
         }
 
-        const order = orderService.getOrderByThreadMessage(quotedMsgId);
+        let order = quotedMsgId ? orderService.getOrderByThreadMessage(quotedMsgId) : null;
+        if (!order && quotedText) {
+            const match = quotedText.match(/#(\d{4,})/);
+            if (match) {
+                order = orderService.getOrderById(parseInt(match[1]));
+            }
+        }
+
         if (!order) {
             return await flowDynamic('⚠️ No se encontró ningún pedido vinculado a este mensaje citado.');
         }

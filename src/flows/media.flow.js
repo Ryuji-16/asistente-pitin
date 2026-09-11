@@ -3,7 +3,7 @@ import { downloadMediaMessage } from 'baileys';
 import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
 import { PAYMENT_METHODS } from '../config/data.js';
-import { getQuotedMessageId } from '../utils/formatters.js';
+import { getQuotedMessageId, getQuotedText } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
 export const flowMedia = addKeyword(EVENTS.MEDIA)
@@ -13,18 +13,56 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
         }
 
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
-        const adminGroups = storeService.getOrdersGroups();
-        const isFromAdminGroup = adminGroups.includes(remoteJid);
+        const isGroup = remoteJid.endsWith('@g.us');
 
         // =========================================================================
-        // CASO 1: Imagen enviada en el grupo de despacho (El cajero envía el Ticket)
+        // SECCIÓN A: MULTIMEDIA ENVIADA DENTRO DE UN GRUPO DE WHATSAPP (TICKET DE PESAJE)
         // =========================================================================
-        if (isFromAdminGroup) {
+        if (isGroup) {
+            const adminGroups = storeService.getOrdersGroups();
+            const isFromAdminGroup = adminGroups.some(g => g.toLowerCase().trim() === remoteJid.toLowerCase().trim());
+
+            if (!isFromAdminGroup) {
+                // Si el grupo no está registrado como grupo de despacho, ignorar
+                return endFlow();
+            }
+
             const quotedId = getQuotedMessageId(ctx);
-            if (!quotedId) return endFlow();
+            const quotedText = getQuotedText(ctx);
 
-            const order = orderService.getOrderByThreadMessage(quotedId);
-            if (!order) return endFlow();
+            logger.info(`[flowMedia] Imagen recibida en grupo de despacho (${remoteJid}). QuotedId: ${quotedId || 'ninguno'}`);
+
+            // 1. Buscar el pedido por ID de mensaje citado
+            let order = quotedId ? orderService.getOrderByThreadMessage(quotedId) : null;
+
+            // 2. Si no se encontró, buscar número de pedido en el texto del mensaje citado (ej: #1001)
+            if (!order && quotedText) {
+                const match = quotedText.match(/#(\d{4,})/);
+                if (match) {
+                    order = orderService.getOrderById(parseInt(match[1]));
+                }
+            }
+
+            // 3. Si aún no se encontró, pero solo hay un pedido esperando ticket en la tienda
+            if (!order) {
+                const singlePending = orderService.getSinglePendingTicketOrder();
+                if (singlePending) {
+                    order = singlePending;
+                    logger.info(`[flowMedia] Vinculando ticket al único pedido pendiente: #${order.id}`);
+                }
+            }
+
+            if (!order) {
+                if (!quotedId && !quotedText) {
+                    return await flowDynamic([
+                        '⚠️ *Para enviar el ticket al cliente:*',
+                        'Debes **responder (citar)** el mensaje del pedido correspondiente con la foto del ticket.',
+                        '',
+                        '👉 Mantén presionado el mensaje del pedido en WhatsApp, presiona la flechita de responder ↩️ y adjunta la foto del ticket.'
+                    ].join('\n'));
+                }
+                return await flowDynamic('⚠️ No se encontró ningún pedido pendiente vinculado a este mensaje citado. Verifica el número de pedido.');
+            }
 
             // Descargar la foto del ticket
             const buffer = await downloadMediaMessage(ctx, 'buffer', {}).catch((err) => {
@@ -81,11 +119,15 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
 
             const clientJid = `${order.clientPhone}@s.whatsapp.net`;
             try {
-                await provider.vendor.sendMessage(clientJid, {
-                    image: buffer,
-                    caption: clientCaption
-                });
-                await flowDynamic(`✅ *Ticket del Pedido #${order.id} enviado a ${order.clientName}*. Esperando comprobante...`);
+                if (provider.vendor?.sendMessage) {
+                    await provider.vendor.sendMessage(clientJid, {
+                        image: buffer,
+                        caption: clientCaption
+                    });
+                } else if (provider.sendMessage) {
+                    await provider.sendMessage(clientJid, clientCaption, {});
+                }
+                await flowDynamic(`✅ *Ticket del Pedido #${order.id} enviado con éxito a ${order.clientName}* (+${order.clientPhone}). Esperando comprobante de pago...`);
             } catch (err) {
                 logger.error(`Error enviando ticket a cliente ${clientJid}:`, err.message);
                 await flowDynamic(`⚠️ Error al enviar ticket al cliente (+${order.clientPhone}): ${err.message}`);
@@ -94,7 +136,7 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
         }
 
         // =========================================================================
-        // CASO 2: Imagen enviada por el cliente en privado (Comprobante de Pago)
+        // SECCIÓN B: MULTIMEDIA ENVIADA POR UN CLIENTE EN CHAT PRIVADO
         // =========================================================================
         const activeOrder = orderService.getActiveOrderByClient(ctx.from);
 
@@ -125,6 +167,7 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
             // Obtener el último mensaje del hilo para responder citándolo
             const lastThreadMsgId = activeOrder.threadMsgIds[activeOrder.threadMsgIds.length - 1];
 
+            const adminGroups = storeService.getOrdersGroups();
             for (const groupId of adminGroups) {
                 try {
                     const quoteOptions = lastThreadMsgId ? { quoted: { key: { id: lastThreadMsgId, remoteJid: groupId } } } : {};
@@ -144,7 +187,7 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
         }
 
         // =========================================================================
-        // CASO 3: Imagen enviada fuera del contexto de un pedido
+        // CASO 3: Imagen enviada fuera del contexto de un pedido (Chat privado)
         // =========================================================================
         const sender = ctx.pushName || ctx.from || 'Cliente';
         const clientPhone = ctx.from || 'Desconocido';

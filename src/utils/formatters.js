@@ -71,3 +71,43 @@ export function getQuotedMessageId(ctx) {
         null
     );
 }
+
+/**
+ * Extrae el texto del mensaje citado (quoted message) en WhatsApp Baileys
+ * @param {Object} ctx
+ * @returns {string}
+ */
+export function getQuotedText(ctx) {
+    if (!ctx) return '';
+    const msg =
+        ctx.message?.ephemeralMessage?.message ||
+        ctx.message?.viewOnceMessage?.message ||
+        ctx.message?.viewOnceMessageV2?.message ||
+        ctx.message;
+
+    const contextInfo =
+        msg?.extendedTextMessage?.contextInfo ||
+        msg?.imageMessage?.contextInfo ||
+        msg?.documentMessage?.contextInfo ||
+        msg?.videoMessage?.contextInfo ||
+        ctx.contextInfo ||
+        ctx.quoted ||
+        null;
+
+    const quotedMsg = contextInfo?.quotedMessage;
+    if (!quotedMsg) return '';
+
+    const unwrapped =
+        quotedMsg?.ephemeralMessage?.message ||
+        quotedMsg?.viewOnceMessage?.message ||
+        quotedMsg?.viewOnceMessageV2?.message ||
+        quotedMsg;
+
+    return (
+        unwrapped?.conversation ||
+        unwrapped?.extendedTextMessage?.text ||
+        unwrapped?.imageMessage?.caption ||
+        unwrapped?.documentMessage?.caption ||
+        ''
+    );
+}

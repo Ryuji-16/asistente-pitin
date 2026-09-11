@@ -128,10 +128,10 @@ class StoreService {
      */
     getOrdersGroups() {
         const envOrders = process.env.ORDERS_GROUP_ID
-            ? process.env.ORDERS_GROUP_ID.split(',').map(g => g.trim())
+            ? process.env.ORDERS_GROUP_ID.split(',').map(g => g.replace(/^['"]|['"]$/g, '').trim())
             : [];
         const envAdmin = process.env.ADMIN_GROUP_ID
-            ? process.env.ADMIN_GROUP_ID.split(',').map(g => g.trim())
+            ? process.env.ADMIN_GROUP_ID.split(',').map(g => g.replace(/^['"]|['"]$/g, '').trim())
             : [];
         const set = new Set([
             ...(this.data.ordersGroups || []),
@@ -139,7 +139,7 @@ class StoreService {
             ...envOrders,
             ...envAdmin
         ]);
-        return Array.from(set).filter(g => g && g.endsWith('@g.us'));
+        return Array.from(set).map(g => g.trim()).filter(g => g && g.endsWith('@g.us'));
     }
 
     /**
@@ -148,10 +148,10 @@ class StoreService {
      */
     getUpdatesGroups() {
         const envUpdates = process.env.UPDATES_GROUP_ID
-            ? process.env.UPDATES_GROUP_ID.split(',').map(g => g.trim())
+            ? process.env.UPDATES_GROUP_ID.split(',').map(g => g.replace(/^['"]|['"]$/g, '').trim())
             : [];
         const envAdmin = process.env.ADMIN_GROUP_ID
-            ? process.env.ADMIN_GROUP_ID.split(',').map(g => g.trim())
+            ? process.env.ADMIN_GROUP_ID.split(',').map(g => g.replace(/^['"]|['"]$/g, '').trim())
             : [];
         const set = new Set([
             ...(this.data.updatesGroups || []),
@@ -159,7 +159,7 @@ class StoreService {
             ...envUpdates,
             ...envAdmin
         ]);
-        return Array.from(set).filter(g => g && g.endsWith('@g.us'));
+        return Array.from(set).map(g => g.trim()).filter(g => g && g.endsWith('@g.us'));
     }
 
 
