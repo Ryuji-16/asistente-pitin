@@ -25,9 +25,8 @@ const main = async () => {
     const adapterProvider = createProvider(BaileysProvider, {
         port: PORT,
         version,
-        writeMyself: 'both',
+        writeMyself: 'none',
         groupsIgnore: false,
-        emitOwnEvents: true,
     });
 
     // Activar receptor de comandos y multimedia en grupos de WhatsApp
@@ -39,9 +38,19 @@ const main = async () => {
         database: adapterDB,
     });
 
-    // Proteger pasos con capture: true contra secuestro por palabras clave globales (ej: '1', '2', productos, delivery)
+    // 1. Proteger contra respuestas automáticas a los mensajes propios del dueño en chats privados
+    // 2. Proteger pasos con capture: true contra secuestro por palabras clave globales (ej: '1', '2', productos, delivery)
     const originalHandleMsg = bot.handleMsg.bind(bot);
     bot.handleMsg = async (messageCtxInComing) => {
+        const remoteJid = messageCtxInComing.key?.remoteJid || messageCtxInComing.from || '';
+        const isGroup = remoteJid.endsWith('@g.us');
+
+        // REGLA CRÍTICA: Si el mensaje fue enviado por el dueño del teléfono (fromMe: true) en un chat privado,
+        // IGNORARLO TOTALMENTE para no responderle al cliente como si el cliente hubiera escrito ese mensaje.
+        if (messageCtxInComing.key?.fromMe && !isGroup) {
+            return;
+        }
+
         const prevMsg = await adapterDB.getPrevByNumber(messageCtxInComing.from);
         const isCapturing = prevMsg?.options?.capture;
         const bodyText = (messageCtxInComing.body || '').trim().toLowerCase();
@@ -61,6 +70,7 @@ const main = async () => {
         }
         return originalHandleMsg(messageCtxInComing);
     };
+
 
     const { httpServer } = bot;
     httpServer(+PORT);

@@ -2,6 +2,7 @@ import { addKeyword } from '@builderbot/bot';
 import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
+import { logger } from '../utils/logger.js';
 
 const isCancelRequest = (text = '') => {
     const clean = text.trim().toLowerCase();
@@ -60,18 +61,31 @@ export const flowOrderPayment = addKeyword(['__flow_order_payment__'])
             const storeNotice = orderService.buildStoreNotification(order);
             const adminGroups = storeService.getOrdersGroups();
 
+            logger.info(`Notificando pedido #${order.id} a ${adminGroups.length} grupo(s) de despacho...`);
+            if (adminGroups.length === 0) {
+                logger.warn(`⚠️ ATENCIÓN: No hay grupos de pedidos vinculados en el bot. Escribe #grupo pedidos dentro del grupo de WhatsApp de despacho.`);
+            }
+
             for (const groupId of adminGroups) {
                 try {
-                    const sentMsg = await provider.sendMessage(groupId, storeNotice, {});
+                    logger.info(`Enviando notificación al grupo de WhatsApp: ${groupId}`);
+                    let sentMsg = null;
+                    if (provider.vendor?.sendMessage) {
+                        sentMsg = await provider.vendor.sendMessage(groupId, { text: storeNotice });
+                    } else if (provider.sendMessage) {
+                        sentMsg = await provider.sendMessage(groupId, storeNotice, {});
+                    }
                     if (sentMsg?.key?.id) {
                         orderService.registerThreadMessage(order.id, sentMsg.key.id);
+                        logger.success(`Notificación del pedido #${order.id} enviada con éxito al grupo ${groupId} (ID: ${sentMsg.key.id})`);
                     }
                 } catch (err) {
-                    console.error(`Error enviando pedido #${order.id} al grupo ${groupId}:`, err.message);
+                    logger.error(`Error enviando pedido #${order.id} al grupo ${groupId}:`, err.message);
                 }
             }
         }
     );
+
 
 // Subflujo 1: Ubicación GPS / Dirección (Exclusivo para pedidos con Delivery)
 export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])

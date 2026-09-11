@@ -78,17 +78,16 @@ export const flowAdmin = addKeyword([
 
         // 2. Ver grupos vinculados
         if (text.toLowerCase() === '#grupos') {
-            const store = storeService.getStore();
-            const orders = store.ordersGroups || [];
-            const updates = store.updatesGroups || [];
-            const generals = store.adminGroups || [];
+            const orders = storeService.getOrdersGroups();
+            const updates = storeService.getUpdatesGroups();
+            const generals = storeService.getStore().adminGroups || [];
 
             return await flowDynamic([
                 '👥 *ESTADO DE GRUPOS EN ASISTENTE PITÍN*',
                 '═════════════════════════════════',
-                `📦 *Grupo de Pedidos y Despacho:* ${orders.length ? `✅ Vinculado (${orders.length})` : '❌ Pendiente'}`,
-                `📊 *Grupo de Actualizaciones:* ${updates.length ? `✅ Vinculado (${updates.length})` : '❌ Pendiente'}`,
-                `🍗 *Grupos Generales (Ambos):* ${generals.length ? `✅ Vinculado (${generals.length})` : 'Ninguno'}`,
+                `📦 *Grupo de Pedidos y Despacho:* ${orders.length ? `✅ Vinculado (${orders.join(', ')})` : '❌ Pendiente (escribe `#grupo pedidos` en el grupo)'}`,
+                `📊 *Grupo de Actualizaciones:* ${updates.length ? `✅ Vinculado (${updates.join(', ')})` : '❌ Pendiente (escribe `#grupo actualizaciones` en el grupo)'}`,
+                `🍗 *Grupos Generales (Ambos):* ${generals.length ? `✅ Vinculado (${generals.join(', ')})` : 'Ninguno'}`,
                 '═════════════════════════════════',
                 '💡 *Para vincular un grupo nuevo:*',
                 'Escribe dentro del grupo correspondiente:',
@@ -122,6 +121,8 @@ export const flowAdmin = addKeyword([
                 return await flowDynamic([
                     '✅ *¡GRUPO DE PEDIDOS Y DESPACHO VINCULADO!* 🍗📦',
                     '═════════════════════════════════',
+                    `🆔 *ID del Grupo:* \`${groupId}\``,
+                    '',
                     'A partir de ahora, todos los nuevos pedidos de los clientes llegarán a este grupo.',
                     '',
                     '👉 *Flujo para cajeros y despachadores:*',
@@ -137,6 +138,8 @@ export const flowAdmin = addKeyword([
                 return await flowDynamic([
                     '✅ *¡GRUPO DE ACTUALIZACIONES VINCULADO!* 📊✨',
                     '═════════════════════════════════',
+                    `🆔 *ID del Grupo:* \`${groupId}\``,
+                    '',
                     'Este grupo quedó autorizado para administración y actualizaciones de PitaPollo.',
                     '',
                     '👉 *Comandos disponibles aquí:*',
@@ -152,6 +155,8 @@ export const flowAdmin = addKeyword([
             return await flowDynamic([
                 '✅ *¡GRUPO OFICIAL VINCULADO!* 🍗📱',
                 '═════════════════════════════════',
+                `🆔 *ID del Grupo:* \`${groupId}\``,
+                '',
                 'Este grupo quedó registrado tanto para recibir *Pedidos y Despacho* como para *Actualizaciones* (#tasa, #precios, #pausar, etc.).'
             ].join('\n'));
         }
