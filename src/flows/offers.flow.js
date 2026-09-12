@@ -11,9 +11,10 @@ const assetsDir = path.resolve(__dirname, '../../assets');
 export const flowOffers = addKeyword([
     '1', '1️⃣', 'oferta', 'ofertas', 'promocion', 'promociones',
     'catalogo', 'catálogo', 'lista de precios', 'ver ofertas', 'ver catalogo', 'ver catálogo'
-])
-    .addAction(async (_, { endFlow }) => {
-        if (storeService.isPaused()) {
+], { sensitive: true })
+    .addAction(async (ctx, { endFlow }) => {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
     })

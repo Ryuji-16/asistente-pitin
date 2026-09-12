@@ -1,6 +1,38 @@
 {
-  "lastOrderId": 1000,
-  "orders": [],
-  "threadMsgMap": [],
-  "clientActiveOrder": []
+  "lastOrderId": 1001,
+  "orders": [
+    [
+      1001,
+      {
+        "id": 1001,
+        "clientPhone": "584142142898",
+        "clientName": "Enyer fernandez",
+        "items": "Quiero 1 oferta de cada una y una bolsa de 5 pollo también",
+        "isDelivery": true,
+        "address": "_event_location__db3b3416-a826-465d-a5aa-582ab6a58cea",
+        "latitude": 10.423900604248047,
+        "longitude": -66.80950164794922,
+        "deliveryFee": 5,
+        "deliveryLabel": "Zona 2 ($5.00) (~7.3 km)",
+        "paymentChoice": "Pago Móvil (Banesco)",
+        "status": "PENDING_TICKET",
+        "createdAt": "2026-09-12T01:57:22.652Z",
+        "threadMsgIds": [
+          "3EB0A29DEDC525A9C8881C"
+        ]
+      }
+    ]
+  ],
+  "threadMsgMap": [
+    [
+      "3EB0A29DEDC525A9C8881C",
+      1001
+    ]
+  ],
+  "clientActiveOrder": [
+    [
+      "584142142898",
+      1001
+    ]
+  ]
 }

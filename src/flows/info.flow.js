@@ -11,9 +11,10 @@ export const flowInfo = addKeyword([
     'tienda fisica', 'tienda física', 'local', 'sede', 'punto de referencia',
     'horario', 'horarios', 'delivery', 'zonas de delivery', 'tarifas delivery',
     'costo delivery', 'precio delivery'
-])
-    .addAction(async (_, { endFlow }) => {
-        if (storeService.isPaused()) {
+], { sensitive: true })
+    .addAction(async (ctx, { endFlow }) => {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
     })

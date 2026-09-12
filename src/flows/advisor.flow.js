@@ -2,9 +2,10 @@ import { addKeyword } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
 import { storeService } from '../services/storeService.js';
 
-export const flowAdvisor = addKeyword(['5', 'asesor', 'humano', 'persona', 'ayuda', 'operador', 'hablar con asesor'])
-    .addAction(async (_, { endFlow }) => {
-        if (storeService.isPaused()) {
+export const flowAdvisor = addKeyword(['5', 'asesor', 'humano', 'persona', 'ayuda', 'operador', 'hablar con asesor'], { sensitive: true })
+    .addAction(async (ctx, { endFlow }) => {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
     })

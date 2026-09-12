@@ -4,7 +4,11 @@
   "lastUpdated": null,
   "updatedBy": null,
   "adminGroups": [],
-  "ordersGroups": [],
-  "updatesGroups": [],
+  "ordersGroups": [
+    "120363411065750065@g.us"
+  ],
+  "updatesGroups": [
+    "120363428471590772@g.us"
+  ],
   "isPaused": false
 }

@@ -2,9 +2,10 @@ import { addKeyword } from '@builderbot/bot';
 import { PAYMENT_METHODS } from '../config/data.js';
 import { storeService } from '../services/storeService.js';
 
-export const flowPayment = addKeyword(['3', '3️⃣', 'pago', 'pagos', 'pagar', 'cuenta', 'cuentas', 'zelle', 'pago movil', 'datos', 'transferencia', 'metodos de pago', 'metodos'])
-    .addAction(async (_, { endFlow }) => {
-        if (storeService.isPaused()) {
+export const flowPayment = addKeyword(['3', '3️⃣', 'pago', 'pagos', 'pagar', 'cuenta', 'cuentas', 'zelle', 'pago movil', 'datos', 'transferencia', 'metodos de pago', 'metodos'], { sensitive: true })
+    .addAction(async (ctx, { endFlow }) => {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
     })

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { sanitizePhone, arePhoneNumbersEqual } from '../utils/formatters.js';
+import { formatOrderItemsSimple } from './orderParser.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -89,11 +90,14 @@ class OrderService {
         this.lastOrderId += 1;
         const orderId = this.lastOrderId;
 
+        const formattedItems = formatOrderItemsSimple(items);
+
         const order = {
             id: orderId,
             clientPhone: sanitizePhone(clientPhone),
             clientName: clientName || 'Cliente',
-            items: items || 'No especificado',
+            items: formattedItems || 'No especificado',
+            rawItems: items || 'No especificado',
             isDelivery: Boolean(isDelivery),
             address: address || 'Tienda',
             latitude,
@@ -272,6 +276,9 @@ class OrderService {
             `📱 *WhatsApp:* https://wa.me/${order.clientPhone}`,
             '',
             `🛒 *Detalle del Pedido:*\n${order.items}`,
+            order.rawItems && order.rawItems !== order.items && order.rawItems !== 'No especificado'
+                ? `📝 _Texto recibido:_ "${order.rawItems.trim()}"`
+                : '',
             '',
             `🛵 *Modalidad:* ${order.isDelivery ? 'Delivery' : 'Retiro en tienda (La Trinidad)'}`,
             order.isDelivery && order.address ? `📍 *Dirección:* ${order.address}` : '',

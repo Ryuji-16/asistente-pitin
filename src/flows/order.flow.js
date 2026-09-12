@@ -3,6 +3,7 @@ import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
 import { customerService } from '../services/customerService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
+import { formatOrderItemsSimple } from '../services/orderParser.js';
 import { logger } from '../utils/logger.js';
 
 const isCancelRequest = (text = '') => {
@@ -200,7 +201,8 @@ export const flowOrderItemsNew = addKeyword(['__flow_order_items_new__'])
                 await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
                 return endFlow();
             }
-            await state.update({ items: ctx.body?.trim() || 'No especificado' });
+            const formatted = formatOrderItemsSimple(ctx.body);
+            await state.update({ items: formatted || 'No especificado' });
             await flowDynamic('Anotado ✔️');
             return gotoFlow(flowOrderDeliveryOrPickup);
         }
@@ -299,7 +301,8 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
                 await flowDynamic(`¡Excelente! Tomamos lo de siempre:\n📝 *${items}*`);
             }
 
-            await state.update({ items: items || 'No especificado' });
+            const formatted = formatOrderItemsSimple(items);
+            await state.update({ items: formatted || 'No especificado' });
 
             const deliveryDesc = s.isDelivery
                 ? `Delivery a *${s.address}*`
@@ -307,7 +310,7 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
 
             await flowDynamic([
                 '📋 *DETALLE DEL PEDIDO:*',
-                `🛒 ${items}`,
+                formatted,
                 '',
                 `📍 *Entrega habitual:* ${deliveryDesc}`,
                 `💳 *Pago habitual:* *${s.paymentChoice}*`
@@ -321,9 +324,10 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
 export const flowOrder = addKeyword([
     '2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido',
     'quiero pedir', 'para pedir'
-])
+], { sensitive: true })
     .addAction(async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
-        if (storeService.isPaused()) {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
 

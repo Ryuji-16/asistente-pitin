@@ -4,7 +4,8 @@ import { catalogSearchService } from '../services/catalogSearchService.js';
 
 export const flowPriceInquiry = addKeyword(catalogSearchService.getTriggerKeywords())
     .addAction(async (ctx, { flowDynamic, endFlow }) => {
-        if (storeService.isPaused()) {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
 

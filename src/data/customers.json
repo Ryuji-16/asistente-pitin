@@ -1,3 +1,22 @@
 {
-  "customers": []
+  "customers": [
+    [
+      "584142142898",
+      {
+        "phone": "584142142898",
+        "name": "Enyer fernandez",
+        "totalOrders": 1,
+        "firstOrderDate": "2026-09-12T01:57:22.653Z",
+        "isDelivery": true,
+        "address": "_event_location__db3b3416-a826-465d-a5aa-582ab6a58cea",
+        "latitude": 10.423900604248047,
+        "longitude": -66.80950164794922,
+        "deliveryFee": 5,
+        "deliveryLabel": "Zona 2 ($5.00) (~7.3 km)",
+        "paymentChoice": "Pago Móvil (Banesco)",
+        "lastOrderItems": "Quiero 1 oferta de cada una y una bolsa de 5 pollo también",
+        "lastOrderDate": "2026-09-12T01:57:22.653Z"
+      }
+    ]
+  ]
 }

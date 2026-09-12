@@ -3,11 +3,12 @@ import { storeService } from '../services/storeService.js';
 import { formatVenezuelaDate } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
+// Memoria de debounce para comandos de vinculación de grupos
+const lastGroupLinkAttempt = new Map();
+
 export const flowAdmin = addKeyword([
     '#precios', '#actualizar', '#ofertas', '#tasa', '#ver', '#estado', '#ayuda',
-    '#grupo', '#grupos', '#pausar', '#activar',
-    '#pedidos', '#despacho', '#actualizaciones',
-    'grupo pedidos', 'grupo actualizaciones', 'grupo despacho', 'grupo ordenes'
+    '#grupo', '#grupos', '#pausar', '#activar', '#desvincular'
 ])
     .addAction(async (ctx, { flowDynamic, endFlow }) => {
         // Validación estricta de autorización
@@ -109,6 +110,14 @@ export const flowAdmin = addKeyword([
             if (!groupId.endsWith('@g.us')) {
                 return await flowDynamic('⚠️ Este comando debe enviarse **dentro del grupo de WhatsApp** que deseas vincular.');
             }
+
+            const now = Date.now();
+            const lastTime = lastGroupLinkAttempt.get(groupId) || 0;
+            if (now - lastTime < 5000) {
+                logger.info(`[admin.flow] Vinculación duplicada ignorada para grupo ${groupId} (debounce 5s)`);
+                return endFlow();
+            }
+            lastGroupLinkAttempt.set(groupId, now);
 
             let subCmd = lower
                 .replace('#grupo', '')

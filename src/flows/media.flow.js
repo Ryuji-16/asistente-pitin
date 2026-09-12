@@ -29,39 +29,48 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
 
             const quotedId = getQuotedMessageId(ctx);
             const quotedText = getQuotedText(ctx);
+            const caption = ctx.caption || ctx.message?.imageMessage?.caption || ctx.message?.documentMessage?.caption || (typeof ctx.body === 'string' && !ctx.body.startsWith('_event_') ? ctx.body : '') || '';
 
-            logger.info(`[flowMedia] Imagen recibida en grupo de despacho (${remoteJid}). QuotedId: ${quotedId || 'ninguno'}`);
+            logger.info(`[flowMedia] Imagen recibida en grupo de despacho (${remoteJid}). QuotedId: ${quotedId || 'ninguno'}, Caption: "${caption}"`);
 
-            // 1. Buscar el pedido por ID de mensaje citado
+            // 1. Buscar el pedido por ID de mensaje citado en el hilo
             let order = quotedId ? orderService.getOrderByThreadMessage(quotedId) : null;
 
-            // 2. Si no se encontró, buscar número de pedido en el texto del mensaje citado (ej: #1001)
-            if (!order && quotedText) {
-                const match = quotedText.match(/#(\d{4,})/);
+            // 2. Si no se encontró por ID citado, buscar por número de pedido en el pie de foto (ej: #1001 o 1001)
+            if (!order && caption) {
+                const match = caption.match(/#?(\d{4,})/);
                 if (match) {
                     order = orderService.getOrderById(parseInt(match[1]));
+                    if (order) logger.info(`[flowMedia] Pedido #${order.id} identificado por pie de foto: "${caption}"`);
                 }
             }
 
-            // 3. Si aún no se encontró, pero solo hay un pedido esperando ticket en la tienda
+            // 3. Si no se encontró, buscar número de pedido en el texto del mensaje citado (ej: #1001)
+            if (!order && quotedText) {
+                const match = quotedText.match(/#?(\d{4,})/);
+                if (match) {
+                    order = orderService.getOrderById(parseInt(match[1]));
+                    if (order) logger.info(`[flowMedia] Pedido #${order.id} identificado por texto citado: #${match[1]}`);
+                }
+            }
+
+            // 4. Si aún no se encontró, pero solo hay un pedido esperando ticket en toda la tienda
             if (!order) {
                 const singlePending = orderService.getSinglePendingTicketOrder();
                 if (singlePending) {
                     order = singlePending;
-                    logger.info(`[flowMedia] Vinculando ticket al único pedido pendiente: #${order.id}`);
+                    logger.info(`[flowMedia] Vinculando ticket al único pedido pendiente en tienda: #${order.id}`);
                 }
             }
 
             if (!order) {
-                if (!quotedId && !quotedText) {
-                    return await flowDynamic([
-                        '⚠️ *Para enviar el ticket al cliente:*',
-                        'Debes **responder (citar)** el mensaje del pedido correspondiente con la foto del ticket.',
-                        '',
-                        '👉 Mantén presionado el mensaje del pedido en WhatsApp, presiona la flechita de responder ↩️ y adjunta la foto del ticket.'
-                    ].join('\n'));
-                }
-                return await flowDynamic('⚠️ No se encontró ningún pedido pendiente vinculado a este mensaje citado. Verifica el número de pedido.');
+                return await flowDynamic([
+                    '⚠️ *No se pudo identificar a qué pedido corresponde este ticket.*',
+                    '',
+                    '👉 Puedes enviar el ticket de cualquiera de estas formas:',
+                    '1. Responde (**cita**) el mensaje del pedido con la foto del ticket.',
+                    '2. O escribe el número de pedido en el pie de la foto (ej: `#1001`).'
+                ].join('\n'));
             }
 
             // Descargar la foto del ticket

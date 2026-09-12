@@ -1,4 +1,4 @@
-import { utils } from '@builderbot/bot';
+import { utils, EVENTS } from '@builderbot/bot';
 import { orderService } from './orderService.js';
 import { logger } from '../utils/logger.js';
 
@@ -21,6 +21,20 @@ export function enableGroupSupport(adapterProvider) {
         adapterProvider.globalVendorArgs.groupsIgnore = false;
     }
 
+    // Interceptar emit para silenciar mensajes de grupos provenientes del listener interno de BaileysProvider
+    // y permitir ÚNICAMENTE los procesados y sanitizados por este adaptador. Esto erradica mensajes duplicados.
+    const originalEmit = adapterProvider.emit.bind(adapterProvider);
+    adapterProvider.emit = function (event, ...args) {
+        if (event === 'message') {
+            const payload = args[0];
+            const remoteJid = payload?.key?.remoteJid || payload?.from || '';
+            if (remoteJid.endsWith('@g.us') && !payload?.__fromGroupAdapter__) {
+                return false;
+            }
+        }
+        return originalEmit(event, ...args);
+    };
+
     const originalInitVendor = adapterProvider.initVendor.bind(adapterProvider);
 
     adapterProvider.initVendor = async function (...args) {
@@ -33,7 +47,7 @@ export function enableGroupSupport(adapterProvider) {
         return sockEv;
     };
 
-    logger.info('Soporte de grupos WhatsApp (Baileys) activado.');
+    logger.info('Soporte de grupos WhatsApp (Baileys) activado con control exclusivo de eventos.');
 }
 
 /**
@@ -141,12 +155,12 @@ function attachGroupListener(adapterProvider, sockEv) {
                     continue;
                 }
 
-                // Definir el body para BuilderBot
+                // Definir el body para BuilderBot con los eventos constantes correctos
                 let body = trimmedText;
                 if (hasImage) {
-                    body = utils.generateRefProvider('_event_media_');
+                    body = EVENTS.MEDIA;
                 } else if (hasDoc) {
-                    body = utils.generateRefProvider('_event_document_');
+                    body = EVENTS.DOCUMENT;
                 }
 
                 // Normalizar participante (en caso de que WhatsApp envíe identificador LID)
@@ -158,12 +172,14 @@ function attachGroupListener(adapterProvider, sockEv) {
                 const payload = {
                     ...messageCtx,
                     body,
+                    caption: trimmedText,
                     name: messageCtx.pushName || '',
                     from: remoteJid, // e.g. 120363xxxx@g.us
                     participant,
+                    __fromGroupAdapter__: true,
                 };
 
-                logger.info(`[WhatsApp Grupo ${remoteJid}] Comando/Evento detectado: "${body}" (de: ${participant || 'remitente'})`);
+                logger.info(`[WhatsApp Grupo ${remoteJid}] Comando/Evento detectado: "${body}" (caption: "${trimmedText}", de: ${participant || 'remitente'})`);
 
                 // Emitir directamente al motor de BuilderBot
                 adapterProvider.emit('message', payload);
