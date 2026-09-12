@@ -66,6 +66,10 @@ function attachGroupListener(adapterProvider, sockEv) {
                     logger.info(`Sincronizando grupos de WhatsApp de la cuenta (${Object.keys(groups).length} detectados)...`);
                 for (const [id, g] of Object.entries(groups)) {
                     const name = (g.subject || '').toLowerCase();
+                    // Solo vincular grupos que digan "Pitin" en el nombre
+                    if (!name.includes('pitin') && !name.includes('pitín')) {
+                        continue;
+                    }
                     if (name.includes('pedido') || name.includes('despacho') || name.includes('entrega')) {
                         storeService.registerOrdersGroup(id);
                         logger.success(`[Auto-Grupo] Vinculado para Pedidos: "${g.subject}" (${id})`);
