@@ -4,13 +4,63 @@
  * sencilla y directa (un ítem debajo del otro) para facilitar la lectura al personal de despacho.
  */
 
-function cleanLine(s) {
+const FILLER_WORDS = new Set([
+    'hola', 'buenas', 'buen', 'dia', 'dias', 'tardes', 'noches', 'saludos',
+    'que', 'tal', 'como', 'estas', 'esta', 'estan', 'epale', 'pana', 'amigo',
+    'amiga', 'pitin', 'asistente', 'por', 'favor', 'porfa', 'gracias', 'muchas',
+    'muchos', 'mira', 'esto', 'vale', 'ok', 'quiero', 'quisiera', 'necesito',
+    'dame', 'mandame', 'anotame', 'apartame', 'traeme', 'enviame', 'voy', 'a',
+    'pedir', 'querer', 'para', 'deseo', 'lo', 'siguiente'
+]);
+
+/**
+ * Limpia prefijos y sufijos de una línea de producto
+ * @param {string} s
+ * @returns {string}
+ */
+export function cleanItem(s) {
+    if (!s || typeof s !== 'string') return '';
     let res = s
         .replace(/^[-*•]\s*|^\d+[\).]\s*/, '')
-        .replace(/\s+(?:y|e|además|ademas|también|tambien|por favor|porfa|gracias)$/i, '')
         .trim();
-    res = res.replace(/^(?:m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|quiero|quisiera|necesito|voy a querer|voy a pedir)[:\s,.-]*/i, '').trim();
+
+    // Prefijos que se deben eliminar iterativamente al inicio
+    const prefixRegex = /^(?:hola|buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|saludos|c[oó]mo est[aá]s?|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar|anota|anote)[:\s,.-]*/i;
+
+    let changed = true;
+    while (changed) {
+        changed = false;
+        const before = res;
+        res = res.replace(prefixRegex, '').trim();
+        if (res !== before) changed = true;
+    }
+
+    // Sufijos de cortesía o conectores al final
+    const suffixRegex = /[\s,.-]+(?:y|e|además|ademas|también|tambien|por favor|porfa|gracias|muchas gracias)$/i;
+    changed = true;
+    while (changed) {
+        changed = false;
+        const before = res;
+        res = res.replace(suffixRegex, '').trim();
+        if (res !== before) changed = true;
+    }
+
     return res;
+}
+
+/**
+ * Determina si una cadena es un producto real o solo una frase de relleno / saludo
+ * @param {string} item
+ * @returns {boolean}
+ */
+export function isValidProductItem(item) {
+    if (!item || item.length < 2) return false;
+    const clean = item.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[¿?¡!.,:;()_/\-]/g, ' ').trim();
+    if (!clean) return false;
+
+    const words = clean.split(/\s+/).filter(Boolean);
+    const nonFiller = words.filter(w => !FILLER_WORDS.has(w));
+    return nonFiller.length > 0;
 }
 
 /**
@@ -23,31 +73,19 @@ export function parseOrderItems(rawText) {
         return [];
     }
 
-    let text = rawText.trim();
-
-    const introRegex = /^(?:buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|hola|saludos|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar)[:\s,.-]*/i;
-
-    // Limpiar iterativamente saludos, muletillas y frases introductorias al inicio
-    let changed = true;
-    while (changed) {
-        changed = false;
-        const before = text;
-        text = text.replace(introRegex, '').trim();
-        if (text !== before) changed = true;
-    }
-
+    let text = cleanItem(rawText);
     if (!text) {
         return [];
     }
 
-    // Si el cliente ya lo escribió separado por saltos de línea
+    // 1. Si el cliente ya lo escribió separado por saltos de línea
     const existingLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     if (existingLines.length > 1) {
-        const cleanedLines = existingLines.map(cleanLine).filter(Boolean).filter(l => !/^(?:hola|buenas|noches|tardes|dias|buen dia|saludos|por favor|porfa|gracias|amigo|pana|mira|esto)$/i.test(l));
+        const cleanedLines = existingLines.map(cleanItem).filter(isValidProductItem);
         if (cleanedLines.length > 0) return cleanedLines;
     }
 
-    // Split por puntuación (comas, punto y coma, " y ", " e ", "+", "más"), excepto si es fracción ("y 1/2", "y medio")
+    // 2. Split por puntuación (comas, punto y coma, " y ", " e ", "+", "más"), excepto si es fracción ("y 1/2", "y medio")
     const parts = text.split(/(?:,|\;|\s\+\s|\sm[aá]s\s|\sy\s(?!(?:1\/2|1\/4|medio)\b)|\se\s)/i);
     const items = [];
 
@@ -59,17 +97,14 @@ export function parseOrderItems(rawText) {
         if (!part) continue;
         const subparts = part.split(itemStartRegex);
         for (let sub of subparts) {
-            const cleaned = cleanLine(sub);
-            if (cleaned && cleaned.length > 1) {
-                // Descartar si solo es un saludo o muletilla residual
-                if (!/^(?:hola|buenas|noches|tardes|dias|buen dia|saludos|por favor|porfa|gracias|amigo|pana|mira|esto)$/i.test(cleaned)) {
-                    items.push(cleaned);
-                }
+            const cleaned = cleanItem(sub);
+            if (isValidProductItem(cleaned)) {
+                items.push(cleaned);
             }
         }
     }
 
-    return items.length > 0 ? items : [text];
+    return items.length > 0 ? items : (isValidProductItem(text) ? [text] : []);
 }
 
 /**
@@ -83,8 +118,8 @@ export function formatOrderItemsSimple(rawText) {
         return (rawText || 'No especificado').trim();
     }
 
-    // Un ítem debajo del otro con guión simple y directo sin recarga visual
-    return items.map(item => `- ${item}`).join('\n');
+    // Un ítem debajo del otro con viñeta limpia
+    return items.map(item => `• ${item}`).join('\n');
 }
 
 /**

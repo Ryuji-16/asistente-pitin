@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { sanitizePhone, arePhoneNumbersEqual } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
+import { hasExplicitItems } from './orderParser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,18 +94,28 @@ class CustomerService {
 
         const totalOrders = (existing.totalOrders || 0) + 1;
 
+        let safeAddress = order.address || existing.address || '';
+        if (hasExplicitItems(safeAddress) || /^(?:quiero|quisiera|dame|mandame|necesito)/i.test(safeAddress)) {
+            safeAddress = order.latitude ? 'Ubicación GPS' : (existing.address && !hasExplicitItems(existing.address) ? existing.address : '');
+        }
+
+        let safePayment = (order.paymentChoice || existing.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
+        if (hasExplicitItems(safePayment) || /^(?:quiero|quisiera|dame|mandame|necesito)/i.test(safePayment)) {
+            safePayment = 'Pago Móvil';
+        }
+
         const updatedProfile = {
             ...existing,
             phone: cleanPhone,
             name: order.clientName || existing.name || 'Cliente',
             isDelivery: order.isDelivery,
-            address: order.address || existing.address || '',
+            address: safeAddress,
             latitude: order.latitude !== undefined && order.latitude !== null ? order.latitude : existing.latitude || null,
             longitude: order.longitude !== undefined && order.longitude !== null ? order.longitude : existing.longitude || null,
             deliveryFee: order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : existing.deliveryFee || null,
             deliveryLabel: order.deliveryLabel || existing.deliveryLabel || '',
             deliveryZone: order.deliveryZone || existing.deliveryZone || order.deliveryLabel || existing.deliveryLabel || '',
-            paymentChoice: (order.paymentChoice || existing.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, ''),
+            paymentChoice: safePayment,
             lastOrderItems: order.items || existing.lastOrderItems || '',
             lastOrderDate: new Date().toISOString(),
             totalOrders

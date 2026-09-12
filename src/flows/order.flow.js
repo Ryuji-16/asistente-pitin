@@ -136,7 +136,13 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
                 ? (latitude ? 'Ubicación GPS' : 'Dirección por confirmar')
                 : rawBody;
 
-            // 2. Si enviaron enlace de Maps por texto
+            // 2. Si enviaron productos en vez de una dirección
+            if (!latitude && hasExplicitItems(rawBody)) {
+                await flowDynamic('⚠️ Nos indicaste productos en vez de tu dirección de entrega.\n\nPor favor envíanos tu *ubicación GPS* (tocando el clip 📎 y seleccionando "Ubicación") o escribe tu *zona y dirección* (ej: La Trinidad, Las Minas, etc.).');
+                return;
+            }
+
+            // 3. Si enviaron enlace de Maps por texto
             if (!latitude && address.includes('maps')) {
                 const match = address.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
                 if (match) {
