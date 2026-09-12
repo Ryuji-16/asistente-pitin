@@ -284,8 +284,9 @@ class OrderService {
             `💳 *Método de Pago:* ${order.paymentChoice}`,
             '═══════════════════════════════',
             '',
-            '📸 *Para enviar la cuenta:*',
-            '👉 Responde a este mensaje con la *FOTO del ticket facturado*.'
+            '📸 *Para enviar la cuenta/cotización:*',
+            '👉 Responde a este mensaje con la *FOTO del ticket* o escribe el *monto en texto* (ej: "Son $25.50").',
+            '👉 Si un producto se agotó, responde citando: `#cambio [mensaje]`.'
         ];
 
         return lines.filter(line => line !== '').join('\n');

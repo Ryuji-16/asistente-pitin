@@ -1,8 +1,17 @@
 import { addKeyword } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
+import { STORE_LOCATION, DELIVERY_ZONES_TEXT } from '../config/delivery.js';
 import { storeService } from '../services/storeService.js';
+import { getStoreScheduleText, getOffHoursNotice } from '../services/scheduleService.js';
 
-export const flowInfo = addKeyword(['4', 'ubicacion', 'direccion', 'donde estan', 'horario', 'horarios', 'delivery', 'zona', 'zonas'])
+export const flowInfo = addKeyword([
+    '4', '4️⃣', 'ubicacion', 'ubicación', 'direccion', 'dirección',
+    'donde estan', 'donde están', 'donde queda', 'donde quedan',
+    'como llegar', 'cómo llegar', 'google maps', 'maps', 'gps',
+    'tienda fisica', 'tienda física', 'local', 'sede', 'punto de referencia',
+    'horario', 'horarios', 'delivery', 'zonas de delivery', 'tarifas delivery',
+    'costo delivery', 'precio delivery'
+])
     .addAction(async (_, { endFlow }) => {
         if (storeService.isPaused()) {
             return endFlow();
@@ -11,19 +20,27 @@ export const flowInfo = addKeyword(['4', 'ubicacion', 'direccion', 'donde estan'
     .addAnswer(
         [
             `📍 *UBICACIÓN Y HORARIOS - ${BUSINESS_INFO.name.toUpperCase()}*`,
-            '',
+            '═════════════════════════════════',
             '🏠 *Dirección de la Tienda:*',
             BUSINESS_INFO.address,
             '',
-            '🕒 *Horario de Atención:*',
-            BUSINESS_INFO.schedule,
+            '📌 *Punto de Referencia:*',
+            'A pocos metros de la zona comercial y Farmatodo de La Trinidad.',
             '',
-            '🛵 *Servicio de Delivery:*',
-            BUSINESS_INFO.deliveryZones,
+            '🗺️ *Abrir en Google Maps / GPS:*',
+            `https://maps.google.com/?q=${STORE_LOCATION.latitude},${STORE_LOCATION.longitude}`,
+            '',
+            getStoreScheduleText(),
+            '',
+            DELIVERY_ZONES_TEXT,
             '',
             `📞 *Teléfono de Contacto:* ${BUSINESS_INFO.phone}`,
             `📸 *Instagram:* ${BUSINESS_INFO.instagram}`,
+            '═════════════════════════════════',
             '',
-            'Escribe *menu* para volver al inicio.'
+            '👉 *¿Qué te gustaría hacer ahora?*',
+            '• Responde *1* para ver *Catálogo y Precios (PDF)*',
+            '• Responde *2* para *Hacer un Pedido*',
+            '• Responde *menu* para volver al Menú Principal'
         ].join('\n')
     );

@@ -1,6 +1,7 @@
 import { addKeyword } from '@builderbot/bot';
 import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
+import { customerService } from '../services/customerService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
 import { logger } from '../utils/logger.js';
 
@@ -9,7 +10,40 @@ const isCancelRequest = (text = '') => {
     return ['cancelar', 'cancela', 'salir', 'menu', 'inicio'].includes(clean);
 };
 
-// Subflujo 2: Métodos de Pago y Confirmación Final del Pedido
+/**
+ * Función centralizada para despachar el pedido al grupo de WhatsApp e iniciar el hilo
+ * @param {Object} order
+ * @param {Object} provider
+ */
+async function dispatchOrderToGroup(order, provider) {
+    const storeNotice = orderService.buildStoreNotification(order);
+    const adminGroups = storeService.getOrdersGroups();
+
+    logger.info(`Notificando pedido #${order.id} a ${adminGroups.length} grupo(s) de despacho...`);
+    if (adminGroups.length === 0) {
+        logger.warn('⚠️ ATENCIÓN: No hay grupos de pedidos vinculados en el bot. Escribe #grupo pedidos dentro del grupo de WhatsApp de despacho.');
+    }
+
+    for (const groupId of adminGroups) {
+        try {
+            logger.info(`Enviando notificación al grupo de WhatsApp: ${groupId}`);
+            let sentMsg = null;
+            if (provider.vendor?.sendMessage) {
+                sentMsg = await provider.vendor.sendMessage(groupId, { text: storeNotice });
+            } else if (provider.sendMessage) {
+                sentMsg = await provider.sendMessage(groupId, storeNotice, {});
+            }
+            if (sentMsg?.key?.id) {
+                orderService.registerThreadMessage(order.id, sentMsg.key.id);
+                logger.success(`Notificación del pedido #${order.id} enviada con éxito al grupo ${groupId} (ID: ${sentMsg.key.id})`);
+            }
+        } catch (err) {
+            logger.error(`Error enviando pedido #${order.id} al grupo ${groupId}:`, err.message);
+        }
+    }
+}
+
+// Subflujo: Métodos de Pago y Confirmación Final del Pedido (Flujo Estándar)
 export const flowOrderPayment = addKeyword(['__flow_order_payment__'])
     .addAnswer(
         [
@@ -53,41 +87,19 @@ export const flowOrderPayment = addKeyword(['__flow_order_payment__'])
                 paymentChoice
             });
 
-            // 2. Enviar resumen al cliente
+            // 2. Registrar o actualizar perfil del cliente frecuente
+            customerService.recordOrder(order);
+
+            // 3. Enviar resumen al cliente
             const summary = orderService.buildSummary(order);
             await flowDynamic(summary);
 
-            // 3. Notificar al grupo de despacho de la tienda e iniciar el hilo
-            const storeNotice = orderService.buildStoreNotification(order);
-            const adminGroups = storeService.getOrdersGroups();
-
-            logger.info(`Notificando pedido #${order.id} a ${adminGroups.length} grupo(s) de despacho...`);
-            if (adminGroups.length === 0) {
-                logger.warn(`⚠️ ATENCIÓN: No hay grupos de pedidos vinculados en el bot. Escribe #grupo pedidos dentro del grupo de WhatsApp de despacho.`);
-            }
-
-            for (const groupId of adminGroups) {
-                try {
-                    logger.info(`Enviando notificación al grupo de WhatsApp: ${groupId}`);
-                    let sentMsg = null;
-                    if (provider.vendor?.sendMessage) {
-                        sentMsg = await provider.vendor.sendMessage(groupId, { text: storeNotice });
-                    } else if (provider.sendMessage) {
-                        sentMsg = await provider.sendMessage(groupId, storeNotice, {});
-                    }
-                    if (sentMsg?.key?.id) {
-                        orderService.registerThreadMessage(order.id, sentMsg.key.id);
-                        logger.success(`Notificación del pedido #${order.id} enviada con éxito al grupo ${groupId} (ID: ${sentMsg.key.id})`);
-                    }
-                } catch (err) {
-                    logger.error(`Error enviando pedido #${order.id} al grupo ${groupId}:`, err.message);
-                }
-            }
+            // 4. Notificar al grupo de despacho
+            await dispatchOrderToGroup(order, provider);
         }
     );
 
-
-// Subflujo 1: Ubicación GPS / Dirección (Exclusivo para pedidos con Delivery)
+// Subflujo: Ubicación GPS / Dirección (Exclusivo para pedidos con Delivery)
 export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
     .addAnswer(
         [
@@ -138,48 +150,8 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
         }
     );
 
-// Flujo Principal de Pedido
-export const flowOrder = addKeyword(['2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido'])
-    .addAction(async (_, { endFlow }) => {
-        if (storeService.isPaused()) {
-            return endFlow();
-        }
-    })
-    .addAnswer(
-        '🛒 *INICIAR PEDIDO - PITAPOLLO*\n\n¡Excelente! Vamos a tomar los datos de tu pedido paso a paso.\n_(Escribe *cancelar* en cualquier momento si deseas salir)_\n\nPor favor, escribe tu *Nombre y Apellido*:',
-        { capture: true },
-        async (ctx, { state, flowDynamic, endFlow }) => {
-            if (isCancelRequest(ctx.body)) {
-                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
-                return endFlow();
-            }
-            const name = ctx.body?.trim() || 'Cliente';
-            await state.update({ clientName: name });
-            await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
-        }
-    )
-    .addAnswer(
-        [
-            '¿Qué *productos o paquetes empaquetados* deseas pedir?',
-            '',
-            '💡 *Ejemplos de paquetes listos:*',
-            '• 1 bolsa de 5 Kg de milanesa de pechuga',
-            '• 1 bolsa mini de 2 Kg de muslos enteros',
-            '• 1 pack de tenders Maella',
-            '• 1 queso duro y 1 paquete de chistorra Montserratina',
-            '',
-            '_(Escribe los productos y cantidades que deseas en un solo mensaje)_:'
-        ].join('\n'),
-        { capture: true },
-        async (ctx, { state, flowDynamic, endFlow }) => {
-            if (isCancelRequest(ctx.body)) {
-                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
-                return endFlow();
-            }
-            await state.update({ items: ctx.body?.trim() || 'No especificado' });
-            await flowDynamic('Anotado ✔️');
-        }
-    )
+// Subflujo: Elección de Retiro en Tienda o Delivery
+export const flowOrderDeliveryOrPickup = addKeyword(['__flow_order_delivery_or_pickup__'])
     .addAnswer(
         '¿Cómo deseas recibir tu pedido?\n\nResponde con el número:\n1️⃣ *Retiro en tienda* (La Trinidad)\n2️⃣ *Delivery*',
         { capture: true },
@@ -207,3 +179,180 @@ export const flowOrder = addKeyword(['2', '2️⃣', 'pedido', 'pedir', 'comprar
             }
         }
     );
+
+// Subflujo: Captura de Productos para Clientes Nuevos
+export const flowOrderItemsNew = addKeyword(['__flow_order_items_new__'])
+    .addAnswer(
+        [
+            '¿Qué *productos o paquetes empaquetados* deseas pedir?',
+            '',
+            '💡 *Ejemplos de paquetes listos:*',
+            '• 1 bolsa de 5 Kg de milanesa de pechuga',
+            '• 1 bolsa mini de 2 Kg de muslos enteros',
+            '• 1 pack de tenders Maella',
+            '• 1 queso duro y 1 paquete de chistorra Montserratina',
+            '',
+            '_(Escribe los productos y cantidades que deseas en un solo mensaje)_:'
+        ].join('\n'),
+        { capture: true },
+        async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
+            if (isCancelRequest(ctx.body)) {
+                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
+                return endFlow();
+            }
+            await state.update({ items: ctx.body?.trim() || 'No especificado' });
+            await flowDynamic('Anotado ✔️');
+            return gotoFlow(flowOrderDeliveryOrPickup);
+        }
+    );
+
+// Subflujo: Nombre de Cliente Nuevo
+export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
+    .addAnswer(
+        '🛒 *INICIAR PEDIDO - PITAPOLLO*\n\n¡Excelente! Vamos a tomar los datos de tu pedido paso a paso.\n_(Escribe *cancelar* en cualquier momento si deseas salir)_\n\nPor favor, escribe tu *Nombre y Apellido*:',
+        { capture: true },
+        async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
+            if (isCancelRequest(ctx.body)) {
+                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
+                return endFlow();
+            }
+            const name = ctx.body?.trim() || 'Cliente';
+            await state.update({ clientName: name });
+            await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
+            return gotoFlow(flowOrderItemsNew);
+        }
+    );
+
+// Subflujo: Confirmación Exprés en 1 Toque (Cliente Recurrente)
+export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
+    .addAnswer(
+        [
+            '¿Te lo despachamos con tus datos habituales?',
+            '',
+            'Responde con el número:',
+            '1️⃣ *Sí, confirmar pedido* (¡Listo en 1 toque! 🚀)',
+            '2️⃣ *Cambiar dirección o método de pago*'
+        ].join('\n'),
+        { capture: true },
+        async (ctx, { state, flowDynamic, provider, gotoFlow, endFlow }) => {
+            if (isCancelRequest(ctx.body)) {
+                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
+                return endFlow();
+            }
+
+            const text = (ctx.body || '').trim().toLowerCase();
+            const isConfirm = text === '1' || text === '1️⃣' || text.includes('si') || text.includes('sí') || text.includes('confirmo') || text.includes('ok') || text.includes('dale');
+
+            if (isConfirm) {
+                const s = state.getMyState() || {};
+
+                const order = orderService.createOrder({
+                    clientPhone: ctx.from,
+                    clientName: s.clientName,
+                    items: s.items,
+                    isDelivery: s.isDelivery,
+                    address: s.address,
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                    deliveryFee: s.deliveryFee,
+                    deliveryLabel: s.deliveryLabel,
+                    paymentChoice: s.paymentChoice
+                });
+
+                customerService.recordOrder(order);
+
+                const summary = orderService.buildSummary(order);
+                await flowDynamic(summary);
+
+                await dispatchOrderToGroup(order, provider);
+                return;
+            } else {
+                await flowDynamic('Entendido, vamos a ajustar tus datos para este pedido. 👍');
+                return gotoFlow(flowOrderDeliveryOrPickup);
+            }
+        }
+    );
+
+// Subflujo: Captura de Productos para Clientes Recurrentes (Fijos)
+export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning__'])
+    .addAnswer(
+        [
+            '¿Qué *productos o paquetes empaquetados* deseas pedir hoy?',
+            '',
+            '💡 _(Si deseas repetir lo mismo de tu compra anterior, escribe *lo de siempre* o *repetir*)_',
+            '',
+            '_(Escribe los productos y cantidades en un solo mensaje)_:'
+        ].join('\n'),
+        { capture: true },
+        async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
+            if (isCancelRequest(ctx.body)) {
+                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
+                return endFlow();
+            }
+
+            const s = state.getMyState() || {};
+            let items = (ctx.body || '').trim();
+            const lowerItems = items.toLowerCase();
+
+            if ((lowerItems === 'lo de siempre' || lowerItems === 'repetir' || lowerItems === 'lo mismo') && s.lastOrderItems) {
+                items = s.lastOrderItems;
+                await flowDynamic(`¡Excelente! Tomamos lo de siempre:\n📝 *${items}*`);
+            }
+
+            await state.update({ items: items || 'No especificado' });
+
+            const deliveryDesc = s.isDelivery
+                ? `Delivery a *${s.address}*`
+                : 'Retiro en tienda *(La Trinidad)*';
+
+            await flowDynamic([
+                '📋 *DETALLE DEL PEDIDO:*',
+                `🛒 ${items}`,
+                '',
+                `📍 *Entrega habitual:* ${deliveryDesc}`,
+                `💳 *Pago habitual:* *${s.paymentChoice}*`
+            ].join('\n'));
+
+            return gotoFlow(flowExpressConfirm);
+        }
+    );
+
+// Flujo Principal de Pedido (Punto de Entrada)
+export const flowOrder = addKeyword([
+    '2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido',
+    'quiero pedir', 'para pedir'
+])
+    .addAction(async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
+        if (storeService.isPaused()) {
+            return endFlow();
+        }
+
+        const customer = customerService.getCustomer(ctx.from);
+
+        if (customer && customer.name && (customer.address || customer.isDelivery === false)) {
+            // Cliente frecuente reconocido
+            await state.update({
+                isReturningCustomer: true,
+                clientName: customer.name,
+                isDelivery: customer.isDelivery,
+                address: customer.address || 'Tienda',
+                latitude: customer.latitude || null,
+                longitude: customer.longitude || null,
+                deliveryFee: customer.deliveryFee || null,
+                deliveryLabel: customer.deliveryLabel || '',
+                paymentChoice: customer.paymentChoice || 'Pago Móvil (Banesco)',
+                lastOrderItems: customer.lastOrderItems || ''
+            });
+
+            await flowDynamic([
+                `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *PitaPollo*. 🍗✨`,
+                customer.lastOrderItems ? `_(Tu última compra fue: ${customer.lastOrderItems})_` : ''
+            ].filter(Boolean).join('\n'));
+
+            return gotoFlow(flowOrderItemsReturning);
+        } else {
+            // Cliente nuevo sin perfil guardado
+            await state.update({ isReturningCustomer: false });
+            return gotoFlow(flowOrderNewCustomerName);
+        }
+    });

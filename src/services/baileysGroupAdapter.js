@@ -1,4 +1,5 @@
 import { utils } from '@builderbot/bot';
+import { orderService } from './orderService.js';
 import { logger } from '../utils/logger.js';
 
 // Registro de mensajes procesados para evitar duplicados en el socket
@@ -96,9 +97,19 @@ function attachGroupListener(adapterProvider, sockEv) {
                 const hasImage = !!msgContent?.imageMessage;
                 const hasDoc = !!(msgContent?.documentMessage || msgContent?.documentWithCaptionMessage);
 
-                const trimmedText = textToBody.trim();
+                let trimmedText = textToBody.trim();
                 const lowerText = trimmedText.toLowerCase();
-                const isCommand =
+
+                // Extraer stanzaId del mensaje citado si existe
+                const quotedStanzaId =
+                    msgContent?.extendedTextMessage?.contextInfo?.stanzaId ||
+                    msgContent?.imageMessage?.contextInfo?.stanzaId ||
+                    msgContent?.documentMessage?.contextInfo?.stanzaId;
+
+                const orderQuoted = quotedStanzaId ? orderService.getOrderByThreadMessage(quotedStanzaId) : null;
+                const isQuotedPendingTicket = orderQuoted && orderQuoted.status === 'PENDING_TICKET';
+
+                let isCommand =
                     trimmedText.startsWith('#') ||
                     lowerText.startsWith('grupo ') ||
                     lowerText === '#pedidos' ||
@@ -108,8 +119,15 @@ function attachGroupListener(adapterProvider, sockEv) {
                     lowerText === 'actualizaciones';
                 const isMedia = hasImage || hasDoc;
 
+                // Si el cajero cita un pedido pendiente de ticket con texto (ej: "Son $25.50"),
+                // convertirlo automáticamente en comando #cuenta para que Pitín lo entregue al cliente
+                if (!isCommand && !isMedia && isQuotedPendingTicket && trimmedText) {
+                    isCommand = true;
+                    trimmedText = '#cuenta ' + trimmedText;
+                }
+
                 // REGLA CLAVE: En los grupos SOLO procesamos:
-                // 1. Comandos que comiencen por '#' (ej: #grupo, #tasa, #precios, #ok, #camino, #listo, #ver)
+                // 1. Comandos que comiencen por '#' (ej: #grupo, #tasa, #precios, #ok, #camino, #listo, #cuenta, #cambio)
                 // 2. Mensajes con foto/documento (ej: el cajero enviando la foto del ticket)
                 // Las conversaciones casuales se ignoran para no saturar el grupo con respuestas del bot.
                 if (!isCommand && !isMedia) {
