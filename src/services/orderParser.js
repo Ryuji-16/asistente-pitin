@@ -5,10 +5,12 @@
  */
 
 function cleanLine(s) {
-    return s
+    let res = s
         .replace(/^[-*•]\s*|^\d+[\).]\s*/, '')
         .replace(/\s+(?:y|e|además|ademas|también|tambien|por favor|porfa|gracias)$/i, '')
         .trim();
+    res = res.replace(/^(?:m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|quiero|quisiera|necesito|voy a querer|voy a pedir)[:\s,.-]*/i, '').trim();
+    return res;
 }
 
 /**
@@ -23,15 +25,14 @@ export function parseOrderItems(rawText) {
 
     let text = rawText.trim();
 
+    const introRegex = /^(?:buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|hola|saludos|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar)[:\s,.-]*/i;
+
     // Limpiar iterativamente saludos, muletillas y frases introductorias al inicio
     let changed = true;
     while (changed) {
         changed = false;
         const before = text;
-        text = text.replace(
-            /^(?:hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|saludos|como estan|que tal|amigo|amiga|pitin|asistente|por favor|porfa|mira|epale|pana|quisiera|quiero esto|quiero|deseo|necesito|mandame|anotame|apartame|voy a pedir|esto|lo siguiente|para pedir|pedir|ordenar)[:\s,.-]*/i,
-            ''
-        ).trim();
+        text = text.replace(introRegex, '').trim();
         if (text !== before) changed = true;
     }
 
@@ -42,7 +43,7 @@ export function parseOrderItems(rawText) {
     // Si el cliente ya lo escribió separado por saltos de línea
     const existingLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     if (existingLines.length > 1) {
-        const cleanedLines = existingLines.map(cleanLine).filter(Boolean);
+        const cleanedLines = existingLines.map(cleanLine).filter(Boolean).filter(l => !/^(?:hola|buenas|noches|tardes|dias|buen dia|saludos|por favor|porfa|gracias|amigo|pana|mira|esto)$/i.test(l));
         if (cleanedLines.length > 0) return cleanedLines;
     }
 
@@ -51,7 +52,7 @@ export function parseOrderItems(rawText) {
     const items = [];
 
     // Separar si hay múltiples productos concatenados sin puntuación (ej: "...muslo 1 pedazo de queso...")
-    const itemStartRegex = /(?<!\b(?:de|del|por|en|cada))\s+(?=(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|tenders?)|(?:una?|dos|tres|cuatro|cinco|medio|1\/2)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso)))/gi;
+    const itemStartRegex = /(?<!\b(?:de|del|por|en|cada))\s+(?=(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?))|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo)s?)/gi;
 
     for (let part of parts) {
         part = part.trim();
@@ -60,7 +61,10 @@ export function parseOrderItems(rawText) {
         for (let sub of subparts) {
             const cleaned = cleanLine(sub);
             if (cleaned && cleaned.length > 1) {
-                items.push(cleaned);
+                // Descartar si solo es un saludo o muletilla residual
+                if (!/^(?:hola|buenas|noches|tardes|dias|buen dia|saludos|por favor|porfa|gracias|amigo|pana|mira|esto)$/i.test(cleaned)) {
+                    items.push(cleaned);
+                }
             }
         }
     }
@@ -100,7 +104,7 @@ export function hasPriceQuestion(text) {
 export function hasOrderIntent(text) {
     if (!text || typeof text !== 'string') return false;
     if (hasPriceQuestion(text)) return false;
-    return /\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito)\b/i.test(text);
+    return /\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|dame|danos|dános|vendeme|véndeme|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito)\b/i.test(text);
 }
 
 /**
@@ -110,7 +114,7 @@ export function hasOrderIntent(text) {
  */
 export function hasExplicitItems(text) {
     if (!hasOrderIntent(text)) return false;
-    const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|tenders?)|(?:un|una|dos|tres|cuatro|cinco|medio|1\/2)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo))\b/i.test(text);
-    const hasProducts = /\b(?:pechuga|muslo|muslos|ala|alas|milanesa|milanesas|cuadril|molida|solomo|lomito|queso|salchicha|salchichas|chuleta|chuletas|costilla|costillas|pollo)\b/i.test(text);
+    const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?)|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo)s?)\b/i.test(text);
+    const hasProducts = /\b(?:pechugas?|muslos?|alas?|alitas?|milanesas?|cuadril|molida|solomo|lomito|punta|quesos?|salchichas?|chuletas?|costillas?|pollos?|carnes?|huevos?|chistorras?|chorizos?|morcillas?|pernil(?:es)?|tenders?|nuggets?|teque[ñn]os?|combos?|ofertas?)\b/i.test(text);
     return hasUnits || hasProducts;
 }

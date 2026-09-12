@@ -8,14 +8,14 @@
         "totalOrders": 2,
         "firstOrderDate": "2026-09-12T01:57:22.653Z",
         "isDelivery": true,
-        "address": "Ubicación GPS",
+        "address": "Quisiera pedir medio kilo de queso duro y una milanesa",
         "latitude": 10.423900604248047,
         "longitude": -66.80950164794922,
         "deliveryFee": 5,
-        "deliveryLabel": "Zona 2 ($5.00) (~7.3 km)",
-        "paymentChoice": "Pago Móvil (Banesco)",
-        "lastOrderItems": "- 10kg de muslo",
-        "lastOrderDate": "2026-09-12T03:19:09.531Z"
+        "deliveryLabel": "Zona por verificar",
+        "paymentChoice": "Dame 2 pollos y 1 cartón de huevos",
+        "lastOrderItems": "- 2 bolsa de muslo\n- 1 oferta de cada una\n- 2 pollos",
+        "lastOrderDate": "2026-09-12T03:28:32.209Z"
       }
     ]
   ]

@@ -333,7 +333,8 @@ export const flowOrder = addKeyword([
     '2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido',
     'quiero pedir', 'para pedir', 'quiero comprar', 'quiero', 'quisiera',
     'mandame', 'mándame', 'anotame', 'anótame', 'apartame', 'apártame',
-    'voy a pedir', 'voy a querer'
+    'traeme', 'tráeme', 'enviame', 'envíame', 'dame', 'danos', 'dános',
+    'vendeme', 'véndeme', 'voy a pedir', 'voy a querer'
 ], { sensitive: true })
     .addAction(async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
