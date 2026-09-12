@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { sanitizePhone } from '../utils/formatters.js';
+import { sanitizePhone, arePhoneNumbersEqual } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -176,7 +176,17 @@ class OrderService {
      */
     getActiveOrderByClient(clientPhone) {
         const clean = sanitizePhone(clientPhone);
-        const orderId = this.clientActiveOrder.get(clean);
+        let orderId = this.clientActiveOrder.get(clean);
+
+        if (!orderId) {
+            for (const [savedPhone, id] of this.clientActiveOrder.entries()) {
+                if (arePhoneNumbersEqual(savedPhone, clean)) {
+                    orderId = id;
+                    break;
+                }
+            }
+        }
+
         if (orderId && this.orders.has(orderId)) {
             const order = this.orders.get(orderId);
             if (!['DISPATCHED', 'READY_FOR_PICKUP', 'CANCELLED'].includes(order.status)) {
