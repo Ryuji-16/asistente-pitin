@@ -3,7 +3,7 @@ import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
 import { customerService } from '../services/customerService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
-import { formatOrderItemsSimple } from '../services/orderParser.js';
+import { formatOrderItemsSimple, hasExplicitItems } from '../services/orderParser.js';
 import { logger } from '../utils/logger.js';
 
 const isCancelRequest = (text = '') => {
@@ -221,6 +221,10 @@ export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
             const name = ctx.body?.trim() || 'Cliente';
             await state.update({ clientName: name });
             await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
+            const s = state.getMyState() || {};
+            if (s.items) {
+                return gotoFlow(flowOrderDeliveryOrPickup);
+            }
             return gotoFlow(flowOrderItemsNew);
         }
     );
@@ -323,7 +327,9 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
 // Flujo Principal de Pedido (Punto de Entrada)
 export const flowOrder = addKeyword([
     '2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido',
-    'quiero pedir', 'para pedir'
+    'quiero pedir', 'para pedir', 'quiero comprar', 'quiero', 'quisiera',
+    'mandame', 'mándame', 'anotame', 'anótame', 'apartame', 'apártame',
+    'voy a pedir', 'voy a querer'
 ], { sensitive: true })
     .addAction(async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
@@ -332,9 +338,12 @@ export const flowOrder = addKeyword([
         }
 
         const customer = customerService.getCustomer(ctx.from);
+        const hasItemsInMsg = hasExplicitItems(ctx.body);
 
         if (customer && customer.name && (customer.address || customer.isDelivery === false)) {
             // Cliente frecuente reconocido
+            const items = hasItemsInMsg ? formatOrderItemsSimple(ctx.body) : '';
+
             await state.update({
                 isReturningCustomer: true,
                 clientName: customer.name,
@@ -345,9 +354,30 @@ export const flowOrder = addKeyword([
                 deliveryFee: customer.deliveryFee || null,
                 deliveryLabel: customer.deliveryLabel || '',
                 paymentChoice: customer.paymentChoice || 'Pago Móvil (Banesco)',
-                lastOrderItems: customer.lastOrderItems || ''
+                lastOrderItems: customer.lastOrderItems || '',
+                items: items || ''
             });
 
+            if (hasItemsInMsg && items) {
+                // El cliente ya indicó su pedido directamente (ej: "Hola quiero 10kg de muslo")
+                const deliveryDesc = customer.isDelivery
+                    ? `Delivery a *${customer.address}*`
+                    : 'Retiro en tienda *(La Trinidad)*';
+
+                await flowDynamic([
+                    `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *PitaPollo*. 🍗✨`,
+                    '',
+                    '📋 *DETALLE DEL PEDIDO:*',
+                    items,
+                    '',
+                    `📍 *Entrega habitual:* ${deliveryDesc}`,
+                    `💳 *Pago habitual:* *${customer.paymentChoice || 'Pago Móvil (Banesco)'}*`
+                ].join('\n'));
+
+                return gotoFlow(flowExpressConfirm);
+            }
+
+            // Si no especificó productos en el mensaje inicial
             await flowDynamic([
                 `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *PitaPollo*. 🍗✨`,
                 customer.lastOrderItems ? `_(Tu última compra fue: ${customer.lastOrderItems})_` : ''
@@ -356,7 +386,11 @@ export const flowOrder = addKeyword([
             return gotoFlow(flowOrderItemsReturning);
         } else {
             // Cliente nuevo sin perfil guardado
-            await state.update({ isReturningCustomer: false });
+            const items = hasItemsInMsg ? formatOrderItemsSimple(ctx.body) : '';
+            await state.update({
+                isReturningCustomer: false,
+                items: items || ''
+            });
             return gotoFlow(flowOrderNewCustomerName);
         }
     });

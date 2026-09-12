@@ -179,14 +179,31 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
             const adminGroups = storeService.getOrdersGroups();
             for (const groupId of adminGroups) {
                 try {
-                    const quoteOptions = lastThreadMsgId ? { quoted: { key: { id: lastThreadMsgId, remoteJid: groupId } } } : {};
-                    const sent = await provider.vendor.sendMessage(
-                        groupId,
-                        { image: buffer, caption: groupCaption },
-                        quoteOptions
-                    );
+                    let sent = null;
+                    if (lastThreadMsgId && provider.vendor?.sendMessage) {
+                        try {
+                            sent = await provider.vendor.sendMessage(
+                                groupId,
+                                { image: buffer, caption: groupCaption },
+                                { quoted: { key: { id: lastThreadMsgId, remoteJid: groupId, fromMe: true }, message: { conversation: '' } } }
+                            );
+                        } catch (quoteErr) {
+                            logger.warn(`No se pudo citar mensaje anterior (${quoteErr.message}), enviando comprobante directo`);
+                        }
+                    }
+
+                    if (!sent && provider.vendor?.sendMessage) {
+                        sent = await provider.vendor.sendMessage(
+                            groupId,
+                            { image: buffer, caption: groupCaption }
+                        );
+                    } else if (!sent && provider.sendMedia) {
+                        sent = await provider.sendMedia(groupId, buffer, groupCaption);
+                    }
+
                     if (sent?.key?.id) {
                         orderService.registerThreadMessage(activeOrder.id, sent.key.id);
+                        logger.success(`Comprobante del pedido #${activeOrder.id} reenviado al grupo ${groupId} (ID: ${sent.key.id})`);
                     }
                 } catch (err) {
                     logger.error(`Error reenviando comprobante al grupo ${groupId}:`, err.message);

@@ -1,5 +1,5 @@
 {
-  "lastOrderId": 1001,
+  "lastOrderId": 1002,
   "orders": [
     [
       1001,
@@ -21,18 +21,49 @@
           "3EB0A29DEDC525A9C8881C"
         ]
       }
+    ],
+    [
+      1002,
+      {
+        "id": 1002,
+        "clientPhone": "584142142898",
+        "clientName": "Enyer fernandez",
+        "items": "- 10kg de muslo",
+        "rawItems": "- 10kg de muslo",
+        "isDelivery": true,
+        "address": "_event_location__db3b3416-a826-465d-a5aa-582ab6a58cea",
+        "latitude": 10.423900604248047,
+        "longitude": -66.80950164794922,
+        "deliveryFee": 5,
+        "deliveryLabel": "Zona 2 ($5.00) (~7.3 km)",
+        "paymentChoice": "Pago Móvil (Banesco)",
+        "status": "PENDING_PAYMENT",
+        "createdAt": "2026-09-12T02:52:09.367Z",
+        "threadMsgIds": [
+          "3EB07FFA38CA4525DE5111",
+          "3A0F6296203E2A46BF53"
+        ]
+      }
     ]
   ],
   "threadMsgMap": [
     [
       "3EB0A29DEDC525A9C8881C",
       1001
+    ],
+    [
+      "3EB07FFA38CA4525DE5111",
+      1002
+    ],
+    [
+      "3A0F6296203E2A46BF53",
+      1002
     ]
   ],
   "clientActiveOrder": [
     [
       "584142142898",
-      1001
+      1002
     ]
   ]
 }
