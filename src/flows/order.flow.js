@@ -236,6 +236,23 @@ export const flowOrderItemsNew = addKeyword(['__flow_order_items_new__'])
         }
     );
 
+// Subflujo: Captura de Nombre cuando el cliente ya envió sus productos
+export const flowOrderNameWithItems = addKeyword(['__flow_order_name_with_items__'])
+    .addAnswer(
+        'Para registrar tu comanda, por favor escribe tu *Nombre y Apellido*:\n_(Escribe *cancelar* si deseas salir)_',
+        { capture: true },
+        async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
+            if (isCancelRequest(ctx.body)) {
+                await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
+                return endFlow();
+            }
+            const name = ctx.body?.trim() || 'Cliente';
+            await state.update({ clientName: name });
+            await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
+            return gotoFlow(flowOrderDeliveryOrPickup);
+        }
+    );
+
 // Subflujo: Nombre de Cliente Nuevo
 export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
     .addAnswer(
@@ -424,6 +441,16 @@ export const flowOrder = addKeyword([
                 isReturningCustomer: false,
                 items: items || ''
             });
+
+            if (hasItemsInMsg && items) {
+                await flowDynamic([
+                    '🛒 *¡PEDIDO ANOTADO!* 🍗📝',
+                    items,
+                    ''
+                ].join('\n'));
+                return gotoFlow(flowOrderNameWithItems);
+            }
+
             return gotoFlow(flowOrderNewCustomerName);
         }
     });

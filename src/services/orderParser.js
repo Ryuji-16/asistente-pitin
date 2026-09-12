@@ -21,7 +21,7 @@ const FILLER_WORDS = new Set([
 export function cleanItem(s) {
     if (!s || typeof s !== 'string') return '';
     let res = s
-        .replace(/^[-*•]\s*|^\d+[\).]\s*/, '')
+        .replace(/^[-*•]\s*|^\d+\)\s*|^\d+\.(?!\d)\s*/, '')
         .trim();
 
     // Prefijos que se deben eliminar iterativamente al inicio
@@ -139,7 +139,10 @@ export function hasPriceQuestion(text) {
 export function hasOrderIntent(text) {
     if (!text || typeof text !== 'string') return false;
     if (hasPriceQuestion(text)) return false;
-    return /\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|dame|danos|dános|vendeme|véndeme|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito)\b/i.test(text);
+    if (/\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|dame|danos|dános|vendeme|véndeme|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito)\b/i.test(text)) {
+        return true;
+    }
+    return hasExplicitItems(text);
 }
 
 /**
@@ -148,8 +151,33 @@ export function hasOrderIntent(text) {
  * @returns {boolean}
  */
 export function hasExplicitItems(text) {
-    if (!hasOrderIntent(text)) return false;
-    const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?)|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo)s?)\b/i.test(text);
-    const hasProducts = /\b(?:pechugas?|muslos?|alas?|alitas?|milanesas?|cuadril|molida|solomo|lomito|punta|quesos?|salchichas?|chuletas?|costillas?|pollos?|carnes?|huevos?|chistorras?|chorizos?|morcillas?|pernil(?:es)?|tenders?|nuggets?|teque[ñn]os?|combos?|ofertas?)\b/i.test(text);
-    return hasUnits || hasProducts;
+    if (!text || typeof text !== 'string') return false;
+    if (hasPriceQuestion(text)) return false;
+
+    // 1. Verbos de orden directa
+    const hasVerb = /\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|dame|danos|dános|vendeme|véndeme|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito)\b/i.test(text);
+
+    // 2. Unidades y cantidades explícitas (ej: "5 kilos", "2.5 de", "kilo y medio", "una bolsa de", "un cartón de")
+    const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?)|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|kilo\s+y\s+medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo|lomo|carne|pechuga|muslo|ala)s?)\b/i.test(text);
+
+    // 3. Productos del catálogo
+    const hasProducts = /\b(?:pechugas?|muslos?|alas?|alitas?|milanesas?|cuadril|molida|solomo|lomito|lomo|punta|quesos?|salchichas?|chuletas?|costillas?|pollos?|carnes?|huevos?|h[ií]gados?|chistorras?|chorizos?|morcillas?|pernil(?:es)?|tenders?|nuggets?|teque[ñn]os?|combos?|ofertas?|cerdo)\b/i.test(text);
+
+    // Caso A: Si tiene verbo explícito de pedido y menciona productos o unidades
+    if (hasVerb && (hasProducts || hasUnits)) {
+        return true;
+    }
+
+    // Caso B: Si menciona cantidades/unidades y productos (ej: "Una bolsa de pechuga de 5 kilos", "2 kilos de pollo molido")
+    if (hasUnits && hasProducts) {
+        return true;
+    }
+
+    // Caso C: Si escribió múltiples productos separados por comas o líneas
+    const parsed = parseOrderItems(text);
+    if (parsed.length >= 2 && hasProducts) {
+        return true;
+    }
+
+    return false;
 }

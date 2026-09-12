@@ -9,6 +9,7 @@ import {
     flowOrderDeliveryOrPickup,
     flowOrderItemsNew,
     flowOrderNewCustomerName,
+    flowOrderNameWithItems,
     flowExpressConfirm,
     flowOrderItemsReturning
 } from './order.flow.js';
@@ -29,6 +30,7 @@ export const botFlows = [
     flowPriceInquiry,
     flowInfo,
     flowOrder,
+    flowOrderNameWithItems,
     flowOrderNewCustomerName,
     flowOrderItemsNew,
     flowOrderDeliveryOrPickup,
