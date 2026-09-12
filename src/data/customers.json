@@ -17,6 +17,24 @@
         "lastOrderItems": "- 2 bolsa de muslo\n- 1 oferta de cada una\n- 2 pollos",
         "lastOrderDate": "2026-09-12T03:28:32.209Z"
       }
+    ],
+    [
+      "584242418335",
+      {
+        "phone": "584242418335",
+        "name": "Clevis Martinez",
+        "totalOrders": 1,
+        "firstOrderDate": "2026-09-12T03:38:42.423Z",
+        "isDelivery": true,
+        "address": "Ubicación GPS",
+        "latitude": 10.4364684,
+        "longitude": -66.8775434,
+        "deliveryFee": 3.5,
+        "deliveryLabel": "Zona 1 ($3.50) (~2.5 km)",
+        "paymentChoice": "Pago Móvil (Banesco)",
+        "lastOrderItems": "- 1 bolsa de mini de 2k",
+        "lastOrderDate": "2026-09-12T03:38:42.423Z"
+      }
     ]
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "lastOrderId": 1002,
+  "lastOrderId": 1003,
   "orders": [
     [
       1001,
@@ -44,6 +44,31 @@
           "3A0F6296203E2A46BF53"
         ]
       }
+    ],
+    [
+      1003,
+      {
+        "id": 1003,
+        "clientPhone": "584242418335",
+        "clientName": "Clevis Martinez",
+        "items": "- 1 bolsa de mini de 2k",
+        "rawItems": "- 1 bolsa de mini de 2k",
+        "isDelivery": true,
+        "address": "Ubicación GPS",
+        "latitude": 10.4364684,
+        "longitude": -66.8775434,
+        "deliveryFee": 3.5,
+        "deliveryLabel": "Zona 1 ($3.50) (~2.5 km)",
+        "paymentChoice": "Pago Móvil (Banesco)",
+        "status": "DISPATCHED",
+        "createdAt": "2026-09-12T03:38:42.418Z",
+        "threadMsgIds": [
+          "3EB09CF7A526F04EDE8B7C",
+          "3A0F333FB71DEF3EACE6",
+          "3EB0F2221AF64C28477DA5",
+          "3AB9DC2DF9986A2E6CBA"
+        ]
+      }
     ]
   ],
   "threadMsgMap": [
@@ -58,6 +83,22 @@
     [
       "3A0F6296203E2A46BF53",
       1002
+    ],
+    [
+      "3EB09CF7A526F04EDE8B7C",
+      1003
+    ],
+    [
+      "3A0F333FB71DEF3EACE6",
+      1003
+    ],
+    [
+      "3EB0F2221AF64C28477DA5",
+      1003
+    ],
+    [
+      "3AB9DC2DF9986A2E6CBA",
+      1003
     ]
   ],
   "clientActiveOrder": [

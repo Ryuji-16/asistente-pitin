@@ -25,8 +25,6 @@ export const flowOffers = addKeyword([
             return gotoFlow(flowOrder);
         }
 
-        await flowDynamic('🍗 *¡CATÁLOGO Y LISTA DE PRECIOS - PITAPOLLO!*');
-
         const catalogoPdf = path.join(assetsDir, 'catalogo.pdf');
         const pdfCandidates = [
             catalogoPdf,
@@ -38,37 +36,22 @@ export const flowOffers = addKeyword([
         if (existingPdf) {
             await flowDynamic([
                 {
-                    body: '📄 *Aquí tienes nuestro Catálogo y Lista de Precios Oficial de PitaPollo en formato PDF con todos nuestros cortes, combos y congelados.*',
+                    body: [
+                        '🍗 *Catálogo y Lista de Precios - PitaPollo*',
+                        '',
+                        '🛒 *Para ordenar:* Escribe directamente lo que deseas (ej: *2kg de muslo*) o responde *2*.'
+                    ].join('\n'),
                     media: existingPdf
                 }
             ]);
-
-            await flowDynamic(
-                [
-                    '💡 *¿Buscas el precio de algún producto en específico?*',
-                    'Puedes preguntarme directamente en cualquier momento (ej: *¿a cómo está la pechuga?*, *precio de las alas*, *milanesa*, *queso duro*, *costillas*, etc.) y te daré el precio al instante.',
-                    '',
-                    '¿Qué te gustaría hacer ahora?',
-                    '• Responde *2* para *Hacer un Pedido*',
-                    '• Responde *3* para ver *Métodos de Pago*',
-                    '• Responde *menu* para volver al Menú Principal'
-                ].join('\n')
-            );
         } else {
             // Fallback en caso de que no se encuentre el archivo PDF en assets
+            await flowDynamic('🍗 *Catálogo y Lista de Precios - PitaPollo*');
             const sections = storeService.getCatalogSections();
             for (const section of sections) {
                 await flowDynamic(section);
             }
-            await flowDynamic(
-                [
-                    '¿Qué te gustaría hacer ahora?',
-                    '',
-                    '• Responde *2* para *Hacer un Pedido*',
-                    '• Responde *3* para ver *Métodos de Pago*',
-                    '• Responde *menu* para volver al Menú Principal'
-                ].join('\n')
-            );
+            await flowDynamic('🛒 *Para ordenar:* Escribe directamente lo que deseas (ej: *2kg de muslo*) o responde *2*.');
         }
         return endFlow();
     });
