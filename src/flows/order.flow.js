@@ -119,7 +119,10 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
             // 1. Detectar si enviaron ubicación nativa de WhatsApp
             let latitude = ctx.message?.locationMessage?.degreesLatitude || null;
             let longitude = ctx.message?.locationMessage?.degreesLongitude || null;
-            let address = ctx.body?.trim() || (latitude ? 'Ubicación GPS' : 'Dirección por confirmar');
+            let rawBody = (ctx.body || '').trim();
+            let address = (rawBody.startsWith('_event_location_') || !rawBody)
+                ? (latitude ? 'Ubicación GPS' : 'Dirección por confirmar')
+                : rawBody;
 
             // 2. Si enviaron enlace de Maps por texto
             if (!latitude && address.includes('maps')) {
@@ -308,8 +311,9 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
             const formatted = formatOrderItemsSimple(items);
             await state.update({ items: formatted || 'No especificado' });
 
+            const cleanAddress = (s.address || '').startsWith('_event_location_') ? 'tu ubicación GPS' : `*${s.address}*`;
             const deliveryDesc = s.isDelivery
-                ? `Delivery a *${s.address}*`
+                ? `Delivery a ${cleanAddress}`
                 : 'Retiro en tienda *(La Trinidad)*';
 
             await flowDynamic([
@@ -360,8 +364,9 @@ export const flowOrder = addKeyword([
 
             if (hasItemsInMsg && items) {
                 // El cliente ya indicó su pedido directamente (ej: "Hola quiero 10kg de muslo")
+                const cleanAddress = (customer.address || '').startsWith('_event_location_') ? 'tu ubicación GPS' : `*${customer.address}*`;
                 const deliveryDesc = customer.isDelivery
-                    ? `Delivery a *${customer.address}*`
+                    ? `Delivery a ${cleanAddress}`
                     : 'Retiro en tienda *(La Trinidad)*';
 
                 await flowDynamic([

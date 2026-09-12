@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { storeService } from '../services/storeService.js';
+import { hasExplicitItems } from '../services/orderParser.js';
+import { flowOrder } from './order.flow.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,14 +14,19 @@ export const flowOffers = addKeyword([
     '1', '1️⃣', 'oferta', 'ofertas', 'promocion', 'promociones',
     'catalogo', 'catálogo', 'lista de precios', 'ver ofertas', 'ver catalogo', 'ver catálogo'
 ], { sensitive: true })
-    .addAction(async (ctx, { endFlow }) => {
+    .addAction(async (ctx, { flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
-    })
-    .addAnswer('🍗 *¡CATÁLOGO Y LISTA DE PRECIOS - PITAPOLLO!*')
-    .addAction(async (_, { flowDynamic }) => {
+
+        // Si el cliente tiene intención directa de compra con productos o cantidades (ej: "Quiero 1 oferta de cada una y 2 pollos")
+        if (hasExplicitItems(ctx.body)) {
+            return gotoFlow(flowOrder);
+        }
+
+        await flowDynamic('🍗 *¡CATÁLOGO Y LISTA DE PRECIOS - PITAPOLLO!*');
+
         const catalogoPdf = path.join(assetsDir, 'catalogo.pdf');
         const pdfCandidates = [
             catalogoPdf,
@@ -63,4 +70,5 @@ export const flowOffers = addKeyword([
                 ].join('\n')
             );
         }
+        return endFlow();
     });

@@ -2,7 +2,9 @@ import { addKeyword } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
 import { STORE_LOCATION, DELIVERY_ZONES_TEXT } from '../config/delivery.js';
 import { storeService } from '../services/storeService.js';
-import { getStoreScheduleText, getOffHoursNotice } from '../services/scheduleService.js';
+import { getStoreScheduleText } from '../services/scheduleService.js';
+import { hasExplicitItems } from '../services/orderParser.js';
+import { flowOrder } from './order.flow.js';
 
 export const flowInfo = addKeyword([
     '4', '4️⃣', 'ubicacion', 'ubicación', 'direccion', 'dirección',
@@ -12,14 +14,17 @@ export const flowInfo = addKeyword([
     'horario', 'horarios', 'delivery', 'zonas de delivery', 'tarifas delivery',
     'costo delivery', 'precio delivery'
 ], { sensitive: true })
-    .addAction(async (ctx, { endFlow }) => {
+    .addAction(async (ctx, { flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
-    })
-    .addAnswer(
-        [
+
+        if (hasExplicitItems(ctx.body)) {
+            return gotoFlow(flowOrder);
+        }
+
+        await flowDynamic([
             `📍 *UBICACIÓN Y HORARIOS - ${BUSINESS_INFO.name.toUpperCase()}*`,
             '═════════════════════════════════',
             '🏠 *Dirección de la Tienda:*',
@@ -43,5 +48,6 @@ export const flowInfo = addKeyword([
             '• Responde *1* para ver *Catálogo y Precios (PDF)*',
             '• Responde *2* para *Hacer un Pedido*',
             '• Responde *menu* para volver al Menú Principal'
-        ].join('\n')
-    );
+        ].join('\n'));
+        return endFlow();
+    });

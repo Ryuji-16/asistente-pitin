@@ -1,16 +1,21 @@
 import { addKeyword } from '@builderbot/bot';
 import { PAYMENT_METHODS } from '../config/data.js';
 import { storeService } from '../services/storeService.js';
+import { hasExplicitItems } from '../services/orderParser.js';
+import { flowOrder } from './order.flow.js';
 
 export const flowPayment = addKeyword(['3', '3️⃣', 'pago', 'pagos', 'pagar', 'cuenta', 'cuentas', 'zelle', 'pago movil', 'datos', 'transferencia', 'metodos de pago', 'metodos'], { sensitive: true })
-    .addAction(async (ctx, { endFlow }) => {
+    .addAction(async (ctx, { flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {
             return endFlow();
         }
-    })
-    .addAnswer(
-        [
+
+        if (hasExplicitItems(ctx.body)) {
+            return gotoFlow(flowOrder);
+        }
+
+        await flowDynamic([
             '💳 *MÉTODOS DE PAGO DISPONIBLES - PITAPOLLO*',
             '',
             '📱 *PAGO MÓVIL:*',
@@ -30,5 +35,6 @@ export const flowPayment = addKeyword(['3', '3️⃣', 'pago', 'pagos', 'pagar',
             '📌 *Nota:* Una vez realizado tu pago, por favor envía la captura o número de referencia por este chat para procesar tu pedido.',
             '',
             'Escribe *menu* para volver al inicio.'
-        ].join('\n')
-    );
+        ].join('\n'));
+        return endFlow();
+    });
