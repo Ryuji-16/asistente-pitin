@@ -1,5 +1,5 @@
 {
-  "lastOrderId": 1003,
+  "lastOrderId": 1004,
   "orders": [
     [
       1001,
@@ -69,6 +69,27 @@
           "3AB9DC2DF9986A2E6CBA"
         ]
       }
+    ],
+    [
+      1004,
+      {
+        "id": 1004,
+        "clientPhone": "584142142898",
+        "clientName": "Enyer fernandez",
+        "items": "• 10 kilos de muslo\n• 2 pollos\n• una oferta de alas",
+        "rawItems": "• 10 kilos de muslo\n• 2 pollos\n• una oferta de alas",
+        "isDelivery": true,
+        "address": "Ubicación GPS",
+        "latitude": 10.425004005432129,
+        "longitude": -66.82406616210938,
+        "deliveryFee": 5,
+        "deliveryLabel": "Zona 2 ($5.00) (~5.2 km)",
+        "deliveryZone": "Sector cercano (~5.2 km)",
+        "paymentChoice": "Pago Móvil",
+        "status": "PENDING_TICKET",
+        "createdAt": "2026-09-12T13:03:24.894Z",
+        "threadMsgIds": []
+      }
     ]
   ],
   "threadMsgMap": [
@@ -104,7 +125,7 @@
   "clientActiveOrder": [
     [
       "584142142898",
-      1002
+      1004
     ]
   ]
 }

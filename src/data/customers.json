@@ -5,18 +5,18 @@
       {
         "phone": "584142142898",
         "name": "Enyer fernandez",
-        "totalOrders": 2,
+        "totalOrders": 3,
         "firstOrderDate": "2026-09-12T01:57:22.653Z",
         "isDelivery": true,
         "address": "Ubicación GPS",
-        "latitude": 10.423900604248047,
-        "longitude": -66.80950164794922,
+        "latitude": 10.425004005432129,
+        "longitude": -66.82406616210938,
         "deliveryFee": 5,
-        "deliveryLabel": "Zona 2 ($5.00) (~7.3 km)",
-        "deliveryZone": "El Hatillo",
+        "deliveryLabel": "Zona 2 ($5.00) (~5.2 km)",
+        "deliveryZone": "Sector cercano (~5.2 km)",
         "paymentChoice": "Pago Móvil",
-        "lastOrderItems": "10kg de muslo",
-        "lastOrderDate": "2026-09-12T03:28:32.209Z"
+        "lastOrderItems": "• 10 kilos de muslo\n• 2 pollos\n• una oferta de alas",
+        "lastOrderDate": "2026-09-12T13:03:24.960Z"
       }
     ],
     [

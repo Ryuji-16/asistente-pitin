@@ -3,7 +3,7 @@ import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
 import { customerService } from '../services/customerService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
-import { formatOrderItemsSimple, hasExplicitItems } from '../services/orderParser.js';
+import { formatOrderItemsSimple, hasExplicitItems, appendOrderItems } from '../services/orderParser.js';
 import { logger } from '../utils/logger.js';
 
 const isCancelRequest = (text = '') => {
@@ -136,9 +136,19 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
                 ? (latitude ? 'Ubicación GPS' : 'Dirección por confirmar')
                 : rawBody;
 
-            // 2. Si enviaron productos en vez de una dirección
+            // 2. Si enviaron productos adicionales en vez de una dirección
             if (!latitude && hasExplicitItems(rawBody)) {
-                await flowDynamic('⚠️ Nos indicaste productos en vez de tu dirección de entrega.\n\nPor favor envíanos tu *ubicación GPS* (tocando el clip 📎 y seleccionando "Ubicación") o escribe tu *zona y dirección* (ej: La Trinidad, Las Minas, etc.).');
+                const s = state.getMyState() || {};
+                const updatedItems = appendOrderItems(s.items, rawBody);
+                await state.update({ items: updatedItems });
+                await flowDynamic([
+                    '➕ *¡Anotado también a tu pedido!* Sumamos esos productos a tu comanda. 🍗📝',
+                    '',
+                    '📋 *PEDIDO ACTUALIZADO:*',
+                    updatedItems,
+                    '',
+                    'Ahora por favor envíanos tu *ubicación GPS* (📎 Ubicación) o escribe tu *dirección y zona de entrega* para calcular el delivery:'
+                ].join('\n'));
                 return;
             }
 
@@ -188,14 +198,33 @@ export const flowOrderDeliveryOrPickup = addKeyword(['__flow_order_delivery_or_p
                 await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
                 return endFlow();
             }
+
+            // Si el cliente agregó más productos en este paso
+            if (hasExplicitItems(ctx.body)) {
+                const s = state.getMyState() || {};
+                const updatedItems = appendOrderItems(s.items, ctx.body);
+                await state.update({ items: updatedItems });
+                await flowDynamic([
+                    '➕ *¡Anotado también!* Sumamos a tu comanda: 🍗📝',
+                    '',
+                    '📋 *PEDIDO ACTUALIZADO:*',
+                    updatedItems,
+                    '',
+                    'Ahora indícanos:',
+                    '¿Prefieres que te lo enviemos por *Delivery* 🛵 o pasas *Retirando* por la tienda en La Trinidad? 🏪'
+                ].join('\n'));
+                return;
+            }
+
             const text = (ctx.body || '').trim().toLowerCase();
-            const isDelivery = text.includes('delivery') || text.includes('envio') || text.includes('envío') || text.includes('casa') || text === '2';
+            const isDelivery = text === '1' || text.includes('delivery') || text.includes('envio') || text.includes('envío') || text.includes('casa') || text.includes('domicilio') || text.includes('mandar') || text.includes('llevar');
+            const isPickup = text === '2' || text.includes('retiro') || text.includes('retirar') || text.includes('tienda') || text.includes('trinidad') || text.includes('pasar') || text.includes('recojo') || text.includes('buscar');
 
             if (isDelivery) {
                 await state.update({ isDelivery: true });
                 await flowDynamic('🛵 ¡Excelente! Vamos a coordinar tu *Delivery*.');
                 return gotoFlow(flowDeliveryAddress);
-            } else {
+            } else if (isPickup) {
                 await state.update({
                     isDelivery: false,
                     address: 'Retiro en tienda (La Trinidad)',
@@ -205,6 +234,13 @@ export const flowOrderDeliveryOrPickup = addKeyword(['__flow_order_delivery_or_p
                 });
                 await flowDynamic('🏪 Perfecto, pasas retirando por la tienda en *La Trinidad*.');
                 return gotoFlow(flowOrderPayment);
+            } else {
+                await flowDynamic([
+                    'Por favor, indícanos cómo prefieres recibir tu comanda: 🤔',
+                    '• Responde *Delivery* (o *1*) si deseas envío a tu dirección.',
+                    '• Responde *Retiro* (o *2*) si pasas por nuestra tienda en La Trinidad.'
+                ].join('\n'));
+                return;
             }
         }
     );
@@ -221,7 +257,7 @@ export const flowOrderItemsNew = addKeyword(['__flow_order_items_new__'])
             '• 1 pack de tenders Maella',
             '• 1 queso duro y 1 paquete de chistorra Montserratina',
             '',
-            '_(Escribe los productos y cantidades que deseas en un solo mensaje)_:'
+            '_(Escribe los productos y cantidades que deseas; puedes detallarlos como prefieras)_:'
         ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
@@ -229,9 +265,13 @@ export const flowOrderItemsNew = addKeyword(['__flow_order_items_new__'])
                 await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
                 return endFlow();
             }
-            const formatted = formatOrderItemsSimple(ctx.body);
+            const s = state.getMyState() || {};
+            const formatted = appendOrderItems(s.items, ctx.body);
             await state.update({ items: formatted || 'No especificado' });
-            await flowDynamic('Anotado ✔️');
+            await flowDynamic([
+                '📋 *PEDIDO ANOTADO:*',
+                formatted
+            ].join('\n'));
             return gotoFlow(flowOrderDeliveryOrPickup);
         }
     );
@@ -246,6 +286,23 @@ export const flowOrderNameWithItems = addKeyword(['__flow_order_name_with_items_
                 await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
                 return endFlow();
             }
+
+            // Si el cliente agregó más productos en vez de su nombre
+            if (hasExplicitItems(ctx.body)) {
+                const s = state.getMyState() || {};
+                const updatedItems = appendOrderItems(s.items, ctx.body);
+                await state.update({ items: updatedItems });
+                await flowDynamic([
+                    '➕ *¡Anotado también!* Sumamos a tu comanda: 🍗📝',
+                    '',
+                    '📋 *PEDIDO ACTUALIZADO:*',
+                    updatedItems,
+                    '',
+                    'Para poder registrar tu comanda a tu nombre, por favor indícanos tu *Nombre y Apellido*:'
+                ].join('\n'));
+                return;
+            }
+
             const name = ctx.body?.trim() || 'Cliente';
             await state.update({ clientName: name });
             await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
@@ -263,6 +320,23 @@ export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
                 await flowDynamic('❌ *Pedido cancelado.* Escribe *menu* cuando desees ver las opciones.');
                 return endFlow();
             }
+
+            // Si el cliente escribió productos directamente
+            if (hasExplicitItems(ctx.body)) {
+                const s = state.getMyState() || {};
+                const updatedItems = appendOrderItems(s.items, ctx.body);
+                await state.update({ items: updatedItems });
+                await flowDynamic([
+                    '➕ *¡Productos anotados!* 🍗📝',
+                    '',
+                    '📋 *PEDIDO:*',
+                    updatedItems,
+                    '',
+                    'Para poder registrar tu comanda a tu nombre, por favor dinos tu *Nombre y Apellido*:'
+                ].join('\n'));
+                return;
+            }
+
             const name = ctx.body?.trim() || 'Cliente';
             await state.update({ clientName: name });
             await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
@@ -280,7 +354,7 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
         [
             '¿Deseas confirmarlo con estos mismos datos habituales? 🚀',
             '',
-            '_(Responde "Sí" para confirmar de una vez, o "Cambiar" si deseas modificar dirección o método de pago)_'
+            '_(Responde "Sí" para confirmar, "Cambiar" para modificar entrega/pago, o escribe si deseas agregar más productos)_'
         ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, provider, gotoFlow, endFlow }) => {
@@ -289,8 +363,39 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
                 return endFlow();
             }
 
+            // 1. Si el cliente envió más productos para agregar a su comanda
+            if (hasExplicitItems(ctx.body)) {
+                const s = state.getMyState() || {};
+                const updatedItems = appendOrderItems(s.items, ctx.body);
+                await state.update({ items: updatedItems });
+
+                const cleanAddress = (s.address || '').startsWith('_event_location_') ? 'tu ubicación GPS' : `*${s.address}*`;
+                const deliveryDesc = s.isDelivery
+                    ? `Delivery a ${cleanAddress}`
+                    : 'Retiro en tienda *(La Trinidad)*';
+                const cleanPayChoice = (s.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
+
+                await flowDynamic([
+                    '➕ *¡Anotado también!* Sumamos a tu comanda: 🍗📝',
+                    '',
+                    '📋 *DETALLE COMPLETO DEL PEDIDO:*',
+                    updatedItems,
+                    '',
+                    `📍 *Entrega habitual:* ${deliveryDesc}`,
+                    `💳 *Pago habitual:* *${cleanPayChoice}*`,
+                    '',
+                    '¿Deseas confirmarlo con estos datos habituales? 🚀',
+                    '_(Responde "Sí" para confirmar de una vez, "Cambiar" para modificar entrega/pago, o sigue agregando productos)_'
+                ].join('\n'));
+                return;
+            }
+
             const text = (ctx.body || '').trim().toLowerCase();
-            const isConfirm = text === '1' || text === '1️⃣' || text.includes('si') || text.includes('sí') || text.includes('confirmo') || text.includes('ok') || text.includes('dale') || text.includes('claro') || text.includes('listo');
+            const isConfirm = text === '1' || text === '1️⃣' ||
+                /\b(?:si|sí|confirmo|confirmar|confirmado|dale|ok|claro|listo|eso es todo|asi esta bien|así está bien|todo bien|perfecto|adelante|manda|mandalo|mándalo|enviar|proceder)\b/i.test(text);
+
+            const isChange = text === '2' || text === '2️⃣' ||
+                /\b(?:cambiar|cambio|modificar|ajustar|otra direccion|otra dirección|otro pago|retiro|tienda|delivery|nueva direccion|nueva dirección)\b/i.test(text);
 
             if (isConfirm) {
                 const s = state.getMyState() || {};
@@ -316,9 +421,19 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
 
                 await dispatchOrderToGroup(order, provider);
                 return;
-            } else {
+            } else if (isChange) {
                 await flowDynamic('Entendido, vamos a ajustar tus datos para este pedido. 👍');
                 return gotoFlow(flowOrderDeliveryOrPickup);
+            } else {
+                // Si el mensaje no fue claro
+                await flowDynamic([
+                    '¿Deseas confirmar tu pedido? 🛒',
+                    '',
+                    '• Responde *Sí* para procesar tu pedido de una vez.',
+                    '• Responde *Cambiar* si deseas modificar tu entrega o forma de pago.',
+                    '• O escribe directamente cualquier otro producto que quieras agregar.'
+                ].join('\n'));
+                return;
             }
         }
     );
@@ -331,7 +446,7 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
             '',
             '💡 _(Si deseas repetir lo mismo de tu compra anterior, escribe *lo de siempre* o *repetir*)_',
             '',
-            '_(Escribe los productos y cantidades en un solo mensaje)_:'
+            '_(Escribe los productos y cantidades que deseas)_:'
         ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
@@ -349,20 +464,21 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
                 await flowDynamic(`¡Excelente! Tomamos lo de siempre:\n📝 *${items}*`);
             }
 
-            const formatted = formatOrderItemsSimple(items);
+            const formatted = appendOrderItems(s.items, items);
             await state.update({ items: formatted || 'No especificado' });
 
             const cleanAddress = (s.address || '').startsWith('_event_location_') ? 'tu ubicación GPS' : `*${s.address}*`;
             const deliveryDesc = s.isDelivery
                 ? `Delivery a ${cleanAddress}`
                 : 'Retiro en tienda *(La Trinidad)*';
+            const cleanPayChoice = (s.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
 
             await flowDynamic([
                 '📋 *DETALLE DEL PEDIDO:*',
                 formatted,
                 '',
                 `📍 *Entrega habitual:* ${deliveryDesc}`,
-                `💳 *Pago habitual:* *${s.paymentChoice}*`
+                `💳 *Pago habitual:* *${cleanPayChoice}*`
             ].join('\n'));
 
             return gotoFlow(flowExpressConfirm);
@@ -376,7 +492,7 @@ export const flowOrder = addKeyword([
     'mandame', 'mándame', 'anotame', 'anótame', 'apartame', 'apártame',
     'traeme', 'tráeme', 'enviame', 'envíame', 'dame', 'danos', 'dános',
     'vendeme', 'véndeme', 'voy a pedir', 'voy a querer'
-], { sensitive: true })
+])
     .addAction(async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {

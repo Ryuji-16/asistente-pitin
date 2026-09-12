@@ -10,7 +10,9 @@ const FILLER_WORDS = new Set([
     'amiga', 'pitin', 'asistente', 'por', 'favor', 'porfa', 'gracias', 'muchas',
     'muchos', 'mira', 'esto', 'vale', 'ok', 'quiero', 'quisiera', 'necesito',
     'dame', 'mandame', 'anotame', 'apartame', 'traeme', 'enviame', 'voy', 'a',
-    'pedir', 'querer', 'para', 'deseo', 'lo', 'siguiente'
+    'pedir', 'querer', 'para', 'deseo', 'lo', 'siguiente',
+    'ah', 'aja', 'ajá', 'y', 'e', 'tambien', 'también', 'ademas', 'además',
+    'agrega', 'agregame', 'agrégame', 'sumale', 'súmale', 'pon', 'ponle'
 ]);
 
 /**
@@ -25,7 +27,7 @@ export function cleanItem(s) {
         .trim();
 
     // Prefijos que se deben eliminar iterativamente al inicio
-    const prefixRegex = /^(?:hola|buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|saludos|c[oó]mo est[aá]s?|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar|anota|anote)[:\s,.-]*/i;
+    const prefixRegex = /^(?:hola|buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|saludos|c[oó]mo est[aá]s?|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar|anota|anote|ah|aj[aá]|tambi[eé]n|adem[aá]s|agrega|agr[eé]game|s[uú]male|ponle|pon|y|e)[:\s,.-]*/i;
 
     let changed = true;
     while (changed) {
@@ -54,9 +56,9 @@ export function cleanItem(s) {
  * @returns {boolean}
  */
 export function isValidProductItem(item) {
-    if (!item || item.length < 2) return false;
+    if (!item || item.length < 3) return false;
     const clean = item.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[¿?¡!.,:;()_/\-]/g, ' ').trim();
-    if (!clean) return false;
+    if (!clean || clean.length < 3) return false;
 
     const words = clean.split(/\s+/).filter(Boolean);
     const nonFiller = words.filter(w => !FILLER_WORDS.has(w));
@@ -154,13 +156,16 @@ export function hasExplicitItems(text) {
     if (!text || typeof text !== 'string') return false;
     if (hasPriceQuestion(text)) return false;
 
-    // 1. Verbos de orden directa
-    const hasVerb = /\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|dame|danos|dános|vendeme|véndeme|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito)\b/i.test(text);
+    // 1. Verbos de orden directa o adición
+    const hasVerb = /\b(?:quiero|quisiera|mandame|mándame|anotame|anótame|apartame|apártame|traeme|tráeme|enviame|envíame|dame|danos|dános|vendeme|véndeme|comprar|pedir|pedido|ordenar|voy a querer|voy a pedir|necesito|agrega|agregame|agrégame|sumale|súmale|pon|ponle|adicional)\b/i.test(text);
 
-    // 2. Unidades y cantidades explícitas (ej: "5 kilos", "2.5 de", "kilo y medio", "una bolsa de", "un cartón de")
-    const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?)|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|kilo\s+y\s+medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo|lomo|carne|pechuga|muslo|ala)s?)\b/i.test(text);
+    // 2. Números o cantidades (dígitos o palabras)
+    const hasNumber = /\b(?:\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|kilo\s+y\s+medio|1\/2|1\/4)\b/i.test(text);
 
-    // 3. Productos del catálogo
+    // 3. Unidades y cantidades explícitas (ej: "5 kilos", "2.5 de", "kilo y medio", "una bolsa de", "un cartón de")
+    const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?|quesos?|milanesas?|huevos?)|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|kilo\s+y\s+medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo|lomo|carne|pechuga|muslo|ala)s?)\b/i.test(text);
+
+    // 4. Productos del catálogo
     const hasProducts = /\b(?:pechugas?|muslos?|alas?|alitas?|milanesas?|cuadril|molida|solomo|lomito|lomo|punta|quesos?|salchichas?|chuletas?|costillas?|pollos?|carnes?|huevos?|h[ií]gados?|chistorras?|chorizos?|morcillas?|pernil(?:es)?|tenders?|nuggets?|teque[ñn]os?|combos?|ofertas?|cerdo)\b/i.test(text);
 
     // Caso A: Si tiene verbo explícito de pedido y menciona productos o unidades
@@ -168,8 +173,8 @@ export function hasExplicitItems(text) {
         return true;
     }
 
-    // Caso B: Si menciona cantidades/unidades y productos (ej: "Una bolsa de pechuga de 5 kilos", "2 kilos de pollo molido")
-    if (hasUnits && hasProducts) {
+    // Caso B: Si menciona números/cantidades y productos (ej: "1 queso duro", "2 kilos de pollo molido")
+    if ((hasNumber || hasUnits) && hasProducts) {
         return true;
     }
 
@@ -180,4 +185,29 @@ export function hasExplicitItems(text) {
     }
 
     return false;
+}
+
+/**
+ * Agrega o combina nuevos productos a una lista existente de comanda
+ * @param {string} existingFormatted Texto formateado previo o no formateado
+ * @param {string} newRaw Nuevo texto con productos enviado por el cliente
+ * @returns {string} Lista combinada en viñetas limpias
+ */
+export function appendOrderItems(existingFormatted = '', newRaw = '') {
+    const existingLines = (existingFormatted || '')
+        .split(/\r?\n/)
+        .map(l => l.replace(/^[-*•]\s*/, '').trim())
+        .filter(l => l && l !== 'No especificado');
+
+    const newParsed = parseOrderItems(newRaw);
+    const toAdd = newParsed.length > 0
+        ? newParsed
+        : (isValidProductItem(newRaw) ? [cleanItem(newRaw)] : []);
+
+    const combined = [...existingLines, ...toAdd];
+    if (combined.length === 0) {
+        return (newRaw || existingFormatted || 'No especificado').trim();
+    }
+
+    return combined.map(item => `• ${item}`).join('\n');
 }
