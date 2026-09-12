@@ -1,6 +1,6 @@
 import { addKeyword } from '@builderbot/bot';
 import { BUSINESS_INFO } from '../config/data.js';
-import { STORE_LOCATION, DELIVERY_ZONES_TEXT } from '../config/delivery.js';
+import { STORE_LOCATION } from '../config/delivery.js';
 import { storeService } from '../services/storeService.js';
 import { getStoreScheduleText } from '../services/scheduleService.js';
 import { hasExplicitItems } from '../services/orderParser.js';
@@ -11,8 +11,7 @@ export const flowInfo = addKeyword([
     'donde estan', 'donde están', 'donde queda', 'donde quedan',
     'como llegar', 'cómo llegar', 'google maps', 'maps', 'gps',
     'tienda fisica', 'tienda física', 'local', 'sede', 'punto de referencia',
-    'horario', 'horarios', 'delivery', 'zonas de delivery', 'tarifas delivery',
-    'costo delivery', 'precio delivery'
+    'horario', 'horarios'
 ], { sensitive: true })
     .addAction(async (ctx, { flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
@@ -38,7 +37,8 @@ export const flowInfo = addKeyword([
             '',
             getStoreScheduleText(),
             '',
-            DELIVERY_ZONES_TEXT,
+            '🛵 *Servicio de Delivery:*',
+            'Contamos con entregas a domicilio en Caracas. Si deseas consultar el costo hasta tu zona, solo pregúntame *costo de delivery*.',
             '',
             `📞 *Teléfono de Contacto:* ${BUSINESS_INFO.phone}`,
             `📸 *Instagram:* ${BUSINESS_INFO.instagram}`,

@@ -1,5 +1,4 @@
 import { storeService } from './storeService.js';
-import { DELIVERY_ZONES_TEXT, estimateDeliveryFee } from '../config/delivery.js';
 
 /**
  * Normaliza un texto para búsqueda (minúsculas, sin tildes, sin signos raros)
@@ -772,37 +771,6 @@ const PRODUCT_DEFINITIONS = [
                 '• 🏷️ *Snacks de Patas / Cuello deshidratados:* $3.00 - $5.00\n' +
                 '• 🏷️ *Orejas de Cerdo:* $4.00'
             );
-        }
-    },
-
-    // 16. DELIVERY Y ZONAS DE COBERTURA
-    {
-        id: 'delivery',
-        keywords: [
-            'precio del delivery',
-            'costo del delivery',
-            'tarifa de delivery',
-            'cuanto cobran el delivery',
-            'cuanto sale el delivery',
-            'a como el delivery',
-            'zonas de delivery',
-            'zona de delivery',
-            'hacen delivery',
-            'tienen delivery',
-            'llegan a',
-            'delivery'
-        ],
-        handler: (cleanText) => {
-            const feeCheck = estimateDeliveryFee({ zoneText: cleanText });
-            if (feeCheck && !feeCheck.isOtherZone && feeCheck.fee) {
-                return (
-                    `🛵 *Tarifa de Delivery - PitaPollo:*\n\n` +
-                    `• 📍 *Zona:* ${feeCheck.matchedZone || feeCheck.label}\n` +
-                    `• 🏷️ *Costo:* $${feeCheck.fee.toFixed(2)} (${feeCheck.label})\n\n` +
-                    `*(Si pides a otra zona fuera de nuestra lista habitual, verificaremos el monto y te lo diremos junto con el monto total de tu pedido)*`
-                );
-            }
-            return DELIVERY_ZONES_TEXT;
         }
     }
 ];

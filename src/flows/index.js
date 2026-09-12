@@ -2,6 +2,7 @@ import { flowGroup } from './group.flow.js';
 import { flowAdmin } from './admin.flow.js';
 import { flowOffers } from './offers.flow.js';
 import { flowPriceInquiry } from './priceInquiry.flow.js';
+import { flowDeliveryInquiry } from './delivery.flow.js';
 import {
     flowOrder,
     flowDeliveryAddress,
@@ -27,6 +28,7 @@ export const botFlows = [
     flowGroup,
     flowAdmin,
     flowOffers,
+    flowDeliveryInquiry,
     flowPriceInquiry,
     flowInfo,
     flowOrder,
