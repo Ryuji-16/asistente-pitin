@@ -85,12 +85,18 @@ class OrderService {
         longitude = null,
         deliveryFee = null,
         deliveryLabel = '',
+        deliveryZone = '',
         paymentChoice
     }) {
         this.lastOrderId += 1;
         const orderId = this.lastOrderId;
 
         const formattedItems = formatOrderItemsSimple(items);
+
+        let cleanPaymentChoice = paymentChoice || 'A convenir';
+        if (cleanPaymentChoice.includes('Pago Móvil')) {
+            cleanPaymentChoice = 'Pago Móvil';
+        }
 
         const order = {
             id: orderId,
@@ -104,7 +110,8 @@ class OrderService {
             longitude,
             deliveryFee,
             deliveryLabel,
-            paymentChoice: paymentChoice || 'A convenir',
+            deliveryZone: deliveryZone || deliveryLabel || '',
+            paymentChoice: cleanPaymentChoice,
             status: 'PENDING_TICKET', // PENDING_TICKET | PENDING_PAYMENT | PAYMENT_VERIFIED | DISPATCHED | READY_FOR_PICKUP | CANCELLED
             createdAt: new Date().toISOString(),
             threadMsgIds: [],
@@ -138,48 +145,33 @@ class OrderService {
     }
 
     /**
-     * Obtiene un pedido por su ID numérico
-     * @param {number|string} orderId
-     * @returns {Object|null}
-     */
-    getOrderById(orderId) {
-        if (!orderId) return null;
-        return this.orders.get(Number(orderId)) || null;
-    }
-
-    /**
-     * Retorna el único pedido pendiente por ticket si solo hay uno en espera en la tienda
-     * @returns {Object|null}
-     */
-    getSinglePendingTicketOrder() {
-        const pending = Array.from(this.orders.values()).filter(o => o.status === 'PENDING_TICKET');
-        if (pending.length === 1) {
-            return pending[0];
-        }
-        return null;
-    }
-
-    /**
-     * Obtiene el pedido asociado a cualquier mensaje citado dentro del hilo
+     * Obtiene el pedido asociado a un ID de mensaje citado en el grupo
      * @param {string} messageId
      * @returns {Object|null}
      */
     getOrderByThreadMessage(messageId) {
         if (!messageId) return null;
         const orderId = this.threadMsgMap.get(messageId);
-        if (orderId && this.orders.has(orderId)) {
-            return this.orders.get(orderId);
-        }
-        return null;
+        if (!orderId) return null;
+        return this.orders.get(orderId) || null;
     }
 
     /**
-     * Obtiene el pedido activo de un cliente (esperando ticket o pago)
-     * @param {string} clientPhone
+     * Obtiene un pedido por su ID numérico
+     * @param {number} orderId
      * @returns {Object|null}
      */
-    getActiveOrderByClient(clientPhone) {
-        const clean = sanitizePhone(clientPhone);
+    getOrderById(orderId) {
+        return this.orders.get(Number(orderId)) || null;
+    }
+
+    /**
+     * Obtiene el pedido activo de un cliente por su número de teléfono
+     * @param {string} phone
+     * @returns {Object|null}
+     */
+    getActiveOrderByClient(phone) {
+        const clean = sanitizePhone(phone);
         let orderId = this.clientActiveOrder.get(clean);
 
         if (!orderId) {
@@ -191,13 +183,22 @@ class OrderService {
             }
         }
 
-        if (orderId && this.orders.has(orderId)) {
-            const order = this.orders.get(orderId);
-            if (!['DISPATCHED', 'READY_FOR_PICKUP', 'CANCELLED'].includes(order.status)) {
-                return order;
-            }
+        if (!orderId) return null;
+        const order = this.orders.get(orderId);
+        if (!order) return null;
+        if (['READY_FOR_PICKUP', 'DISPATCHED', 'CANCELLED'].includes(order.status)) {
+            return null;
         }
-        return null;
+        return order;
+    }
+
+    /**
+     * Si en toda la tienda solo hay un pedido en estado PENDING_TICKET, lo retorna
+     * @returns {Object|null}
+     */
+    getSinglePendingTicketOrder() {
+        const pending = Array.from(this.orders.values()).filter(o => o.status === 'PENDING_TICKET');
+        return pending.length === 1 ? pending[0] : null;
     }
 
     /**
@@ -206,17 +207,16 @@ class OrderService {
      * @param {string} newStatus
      */
     updateOrderStatus(orderId, newStatus) {
-        const order = this.orders.get(orderId);
+        const order = this.orders.get(Number(orderId));
         if (order) {
             order.status = newStatus;
-            logger.info(`Pedido #${orderId} cambió a estado: ${newStatus}`);
-            if (['DISPATCHED', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
+            order.updatedAt = new Date().toISOString();
+            if (['READY_FOR_PICKUP', 'DISPATCHED', 'CANCELLED'].includes(newStatus)) {
                 this.clientActiveOrder.delete(order.clientPhone);
             }
             this.save();
-            return order;
+            logger.info(`Pedido #${orderId} actualizado a estado: ${newStatus}`);
         }
-        return null;
     }
 
     /**
@@ -224,29 +224,34 @@ class OrderService {
      * @param {Object} order
      * @returns {string}
      */
-    buildSummary({ id, clientName, items, isDelivery, address, latitude, longitude, deliveryFee, deliveryLabel, paymentChoice }) {
-        const isTransfer = (paymentChoice || '').includes('Pago') || (paymentChoice || '').includes('Zelle');
-        const isPosDelivery = (paymentChoice || '').includes('Punto de venta inalámbrico');
+    buildSummary({ id, clientName, items, isDelivery, address, latitude, longitude, deliveryFee, deliveryLabel, deliveryZone, paymentChoice }) {
+        let cleanPayment = paymentChoice || 'A convenir';
+        if (cleanPayment.includes('Pago Móvil')) {
+            cleanPayment = 'Pago Móvil';
+        }
+        const isTransfer = cleanPayment.includes('Pago') || cleanPayment.includes('Zelle');
+        const isPosDelivery = cleanPayment.includes('Punto de venta inalámbrico');
 
         const mapUrl = latitude && longitude ? `https://maps.google.com/?q=${latitude},${longitude}` : '';
+        const zoneDesc = deliveryZone || deliveryLabel || '';
 
         const lines = [
             '🎉 *¡RESUMEN DE TU PEDIDO!*',
-            '═══════════════════════════════',
+            '',
             id ? `🔢 *Número de Pedido:* #${id}` : '',
             `👤 *Cliente:* ${clientName || 'Cliente'}`,
+            '',
             `🛒 *Detalle del Pedido:*\n${items || 'No especificado'}`,
             '',
             `🛵 *Modalidad:* ${isDelivery ? 'Delivery' : 'Retiro en tienda (La Trinidad)'}`,
             isDelivery && address ? `📍 *Dirección de entrega:* ${address}` : '',
-            isDelivery && mapUrl ? `🗺️ *Ubicación GPS:* ${mapUrl}` : '',
+            isDelivery && mapUrl ? `📍 *Ubicación GPS:* ${mapUrl}` : '',
             isDelivery
                 ? (deliveryFee !== null && deliveryFee !== undefined
-                    ? `💰 *Delivery:* $${Number(deliveryFee).toFixed(2)} (${deliveryLabel || 'Tarifa de zona'})`
+                    ? `💰 *Delivery:* $${Number(deliveryFee).toFixed(2)}${zoneDesc ? ` - ${zoneDesc}` : ''}`
                     : '💰 *Delivery:* Por verificar con el monto total (Zona a cotizar)')
                 : '',
-            `💳 *Método de pago:* ${paymentChoice || 'A convenir'}`,
-            '═══════════════════════════════',
+            `💳 *Método de pago:* ${cleanPayment}`,
             '',
             '✅ *Tu pedido ha sido registrado con éxito.*',
             'En breve uno de nuestros encargados pesará tu pedido y te enviará la foto del ticket con el total exacto.',
@@ -258,7 +263,11 @@ class OrderService {
                     : '¡Muchas gracias por preferir a PitaPollo! Te esperamos.'
         ];
 
-        return lines.filter(line => line !== '').join('\n');
+        return lines
+            .filter(line => line !== null && line !== undefined && line !== false)
+            .join('\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
     }
 
     /**
@@ -268,10 +277,16 @@ class OrderService {
      */
     buildStoreNotification(order) {
         const mapUrl = order.latitude && order.longitude ? `https://maps.google.com/?q=${order.latitude},${order.longitude}` : '';
+        const zoneDesc = order.deliveryZone || order.deliveryLabel || '';
+
+        let cleanPayment = order.paymentChoice || 'A convenir';
+        if (cleanPayment.includes('Pago Móvil')) {
+            cleanPayment = 'Pago Móvil';
+        }
 
         const lines = [
             `🍗 *NUEVO PEDIDO #${order.id}*`,
-            '═══════════════════════════════',
+            '',
             `👤 *Cliente:* ${order.clientName}`,
             `📱 *WhatsApp:* https://wa.me/${order.clientPhone}`,
             '',
@@ -282,21 +297,22 @@ class OrderService {
             '',
             `🛵 *Modalidad:* ${order.isDelivery ? 'Delivery' : 'Retiro en tienda (La Trinidad)'}`,
             order.isDelivery && order.address ? `📍 *Dirección:* ${order.address}` : '',
-            order.isDelivery && mapUrl ? `🗺️ *GPS:* ${mapUrl}` : '',
+            order.isDelivery && mapUrl ? `📍 *GPS:* ${mapUrl}` : '',
             order.isDelivery
                 ? (order.deliveryFee !== null && order.deliveryFee !== undefined
-                    ? `💰 *Delivery:* $${Number(order.deliveryFee).toFixed(2)} (${order.deliveryLabel})`
+                    ? `💰 *Delivery:* $${Number(order.deliveryFee).toFixed(2)}${zoneDesc ? ` - ${zoneDesc}` : ''}`
                     : '💰 *Delivery:* ⚠️ Por verificar con el monto total (Zona fuera de lista habitual)')
                 : '',
-            `💳 *Método de Pago:* ${order.paymentChoice}`,
-            '═══════════════════════════════',
+            `💳 *Método de Pago:* ${cleanPayment}`,
             '',
-            '📸 *Para enviar la cuenta/cotización:*',
-            '👉 Responde a este mensaje con la *FOTO del ticket* o escribe el *monto en texto* (ej: "Son $25.50").',
-            '👉 Si un producto se agotó, responde citando: `#cambio [mensaje]`.'
+            '👉 Si un producto se agotó, responde citando: #cambio [mensaje]'
         ];
 
-        return lines.filter(line => line !== '').join('\n');
+        return lines
+            .filter(line => line !== null && line !== undefined && line !== false)
+            .join('\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
     }
 }
 

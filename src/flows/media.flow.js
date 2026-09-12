@@ -97,7 +97,7 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
             let paymentInstructions = '';
             if (isPagoMovil) {
                 paymentInstructions = [
-                    '📱 *Datos para tu Pago Móvil (Banesco):*',
+                    '📱 *Datos para tu Pago Móvil:*',
                     `• *Banco:* ${PAYMENT_METHODS.pagoMovil.banco}`,
                     `• *Teléfono:* ${PAYMENT_METHODS.pagoMovil.telefono}`,
                     `• *RIF:* ${PAYMENT_METHODS.pagoMovil.rif}`,
@@ -165,12 +165,12 @@ export const flowMedia = addKeyword(EVENTS.MEDIA)
             const captionText = ctx.message?.imageMessage?.caption || ctx.body || '';
             const groupCaption = [
                 `💵 *COMPROBANTE RECIBIDO - PEDIDO #${activeOrder.id}*`,
-                '═══════════════════════════════',
+                '',
                 `👤 *Cliente:* ${activeOrder.clientName}`,
                 `📱 *WhatsApp:* +${activeOrder.clientPhone}`,
                 captionText ? `📝 *Detalle/Teléfono emisor:* ${captionText}` : '',
                 '',
-                '👉 Responde `#ok` a este mensaje para confirmar el pago y avisar al cliente.'
+                '👉 Responde *Ok* a este mensaje para confirmar el pago y avisar al cliente.'
             ].filter(Boolean).join('\n');
 
             // Obtener el último mensaje del hilo para responder citándolo

@@ -103,7 +103,8 @@ class CustomerService {
             longitude: order.longitude !== undefined && order.longitude !== null ? order.longitude : existing.longitude || null,
             deliveryFee: order.deliveryFee !== undefined && order.deliveryFee !== null ? order.deliveryFee : existing.deliveryFee || null,
             deliveryLabel: order.deliveryLabel || existing.deliveryLabel || '',
-            paymentChoice: order.paymentChoice || existing.paymentChoice || 'Pago Móvil (Banesco)',
+            deliveryZone: order.deliveryZone || existing.deliveryZone || order.deliveryLabel || existing.deliveryLabel || '',
+            paymentChoice: (order.paymentChoice || existing.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, ''),
             lastOrderItems: order.items || existing.lastOrderItems || '',
             lastOrderDate: new Date().toISOString(),
             totalOrders

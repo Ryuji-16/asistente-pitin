@@ -48,14 +48,15 @@ async function dispatchOrderToGroup(order, provider) {
 export const flowOrderPayment = addKeyword(['__flow_order_payment__'])
     .addAnswer(
         [
-            '¿Cuál será tu método de pago?',
+            '¿Cómo prefieres pagar tu pedido? 💳',
             '',
-            'Responde con el número:',
-            '1️⃣ *Pago Móvil (Banesco)*',
-            '2️⃣ *Zelle*',
-            '3️⃣ *Efectivo (Divisas / Bs)*',
-            '4️⃣ *Punto de Venta Inalámbrico (Delivery a tu puerta)*',
-            '5️⃣ *Punto de Venta en Tienda (Retiro presencial)*'
+            'Aceptamos:',
+            '• *Pago Móvil*',
+            '• *Divisas en efectivo ($ / Bs)*',
+            '• *Punto de Venta inalámbrico* (nuestro motorizado lo lleva a tu puerta)',
+            '• *Zelle*',
+            '',
+            'Indícanos cuál método prefieres para procesar tu orden.'
         ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, provider, endFlow }) => {
@@ -64,12 +65,22 @@ export const flowOrderPayment = addKeyword(['__flow_order_payment__'])
                 return endFlow();
             }
 
-            let paymentChoice = (ctx.body || '').trim();
-            if (paymentChoice === '1') paymentChoice = 'Pago Móvil (Banesco)';
-            else if (paymentChoice === '2') paymentChoice = 'Zelle';
-            else if (paymentChoice === '3') paymentChoice = 'Efectivo (Divisas / Bs)';
-            else if (paymentChoice === '4') paymentChoice = 'Punto de venta inalámbrico (Delivery)';
-            else if (paymentChoice === '5') paymentChoice = 'Punto de venta en tienda';
+            const rawPay = (ctx.body || '').trim().toLowerCase();
+            let paymentChoice = 'Pago Móvil'; // Valor por defecto
+
+            if (rawPay === '1' || rawPay.includes('movil') || rawPay.includes('móvil') || rawPay.includes('transferencia') || rawPay.includes('bs') || rawPay.includes('bolivares') || rawPay.includes('bolívares')) {
+                paymentChoice = 'Pago Móvil';
+            } else if (rawPay === '2' || rawPay.includes('zelle')) {
+                paymentChoice = 'Zelle';
+            } else if (rawPay === '3' || rawPay.includes('efectivo') || rawPay.includes('dolar') || rawPay.includes('dólar') || rawPay.includes('divisa') || rawPay.includes('$')) {
+                paymentChoice = 'Efectivo (Divisas / Bs)';
+            } else if (rawPay === '4' || rawPay.includes('punto') || rawPay.includes('tarjeta') || rawPay.includes('pos') || rawPay.includes('inalambrico') || rawPay.includes('inalámbrico')) {
+                paymentChoice = 'Punto de venta inalámbrico (Delivery)';
+            } else if (rawPay === '5' || rawPay.includes('tienda')) {
+                paymentChoice = 'Punto de venta en tienda';
+            } else {
+                paymentChoice = (ctx.body || '').trim() || 'Pago Móvil';
+            }
 
             await state.update({ paymentChoice });
             const s = state.getMyState() || {};
@@ -85,6 +96,7 @@ export const flowOrderPayment = addKeyword(['__flow_order_payment__'])
                 longitude: s.longitude,
                 deliveryFee: s.deliveryFee,
                 deliveryLabel: s.deliveryLabel,
+                deliveryZone: s.deliveryZone,
                 paymentChoice
             });
 
@@ -135,19 +147,21 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
 
             // 3. Estimar tarifa de delivery
             const feeEst = estimateDeliveryFee({ latitude, longitude, zoneText: address });
+            const zoneName = feeEst.zoneName || feeEst.matchedZone || feeEst.label;
 
             await state.update({
                 address,
                 latitude,
                 longitude,
                 deliveryFee: feeEst.fee,
-                deliveryLabel: feeEst.label
+                deliveryLabel: feeEst.label,
+                deliveryZone: zoneName
             });
 
             if (feeEst.fee !== null && feeEst.fee !== undefined) {
-                await flowDynamic(`🛵 *Tarifa de delivery para tu zona:* $${feeEst.fee.toFixed(2)} (${feeEst.label})`);
+                await flowDynamic(`🛵 *Tarifa de delivery estimada:* $${feeEst.fee.toFixed(2)} (${zoneName})`);
             } else {
-                await flowDynamic('🛵 *Nota sobre tu zona de entrega:*\nVerificaremos el monto del delivery para tu zona y te diremos cuánto es junto con el monto total de tu pedido.');
+                await flowDynamic('🛵 *Nota sobre tu zona de entrega:*\nVerificaremos el monto del delivery para tu zona y te informaremos junto con el monto total de tu pedido.');
             }
 
             return gotoFlow(flowOrderPayment);
@@ -157,7 +171,11 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
 // Subflujo: Elección de Retiro en Tienda o Delivery
 export const flowOrderDeliveryOrPickup = addKeyword(['__flow_order_delivery_or_pickup__'])
     .addAnswer(
-        '¿Cómo deseas recibir tu pedido?\n\nResponde con el número:\n1️⃣ *Retiro en tienda* (La Trinidad)\n2️⃣ *Delivery*',
+        [
+            '¿Prefieres que te lo enviemos por *delivery* hasta tu dirección, o pasas *retirando* por nuestra tienda en La Trinidad? 🛵🏪',
+            '',
+            '_(Responde "Delivery" o "Retiro")_'
+        ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
             if (isCancelRequest(ctx.body)) {
@@ -165,20 +183,21 @@ export const flowOrderDeliveryOrPickup = addKeyword(['__flow_order_delivery_or_p
                 return endFlow();
             }
             const text = (ctx.body || '').trim().toLowerCase();
-            const isDelivery = text.includes('2') || text.includes('delivery');
+            const isDelivery = text.includes('delivery') || text.includes('envio') || text.includes('envío') || text.includes('casa') || text === '2';
 
             if (isDelivery) {
                 await state.update({ isDelivery: true });
-                await flowDynamic('🛵 Seleccionaste *Delivery*.');
+                await flowDynamic('🛵 ¡Excelente! Vamos a coordinar tu *Delivery*.');
                 return gotoFlow(flowDeliveryAddress);
             } else {
                 await state.update({
                     isDelivery: false,
                     address: 'Retiro en tienda (La Trinidad)',
                     deliveryFee: null,
-                    deliveryLabel: 'Retiro presencial'
+                    deliveryLabel: 'Retiro presencial',
+                    deliveryZone: 'Retiro en tienda (La Trinidad)'
                 });
-                await flowDynamic('🏪 Seleccionaste *Retiro en tienda* (La Trinidad).');
+                await flowDynamic('🏪 Perfecto, pasas retirando por la tienda en *La Trinidad*.');
                 return gotoFlow(flowOrderPayment);
             }
         }
@@ -236,11 +255,9 @@ export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
 export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
     .addAnswer(
         [
-            '¿Te lo despachamos con tus datos habituales?',
+            '¿Deseas confirmarlo con estos mismos datos habituales? 🚀',
             '',
-            'Responde con el número:',
-            '1️⃣ *Sí, confirmar pedido* (¡Listo en 1 toque! 🚀)',
-            '2️⃣ *Cambiar dirección o método de pago*'
+            '_(Responde "Sí" para confirmar de una vez, o "Cambiar" si deseas modificar dirección o método de pago)_'
         ].join('\n'),
         { capture: true },
         async (ctx, { state, flowDynamic, provider, gotoFlow, endFlow }) => {
@@ -250,7 +267,7 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
             }
 
             const text = (ctx.body || '').trim().toLowerCase();
-            const isConfirm = text === '1' || text === '1️⃣' || text.includes('si') || text.includes('sí') || text.includes('confirmo') || text.includes('ok') || text.includes('dale');
+            const isConfirm = text === '1' || text === '1️⃣' || text.includes('si') || text.includes('sí') || text.includes('confirmo') || text.includes('ok') || text.includes('dale') || text.includes('claro') || text.includes('listo');
 
             if (isConfirm) {
                 const s = state.getMyState() || {};
@@ -265,6 +282,7 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
                     longitude: s.longitude,
                     deliveryFee: s.deliveryFee,
                     deliveryLabel: s.deliveryLabel,
+                    deliveryZone: s.deliveryZone,
                     paymentChoice: s.paymentChoice
                 });
 
@@ -358,7 +376,8 @@ export const flowOrder = addKeyword([
                 longitude: customer.longitude || null,
                 deliveryFee: customer.deliveryFee || null,
                 deliveryLabel: customer.deliveryLabel || '',
-                paymentChoice: customer.paymentChoice || 'Pago Móvil (Banesco)',
+                deliveryZone: customer.deliveryZone || customer.deliveryLabel || '',
+                paymentChoice: (customer.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, ''),
                 lastOrderItems: customer.lastOrderItems || '',
                 items: items || ''
             });
@@ -370,6 +389,8 @@ export const flowOrder = addKeyword([
                     ? `Delivery a ${cleanAddress}`
                     : 'Retiro en tienda *(La Trinidad)*';
 
+                const cleanPayChoice = (customer.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
+
                 await flowDynamic([
                     `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *PitaPollo*. 🍗✨`,
                     '',
@@ -377,7 +398,7 @@ export const flowOrder = addKeyword([
                     items,
                     '',
                     `📍 *Entrega habitual:* ${deliveryDesc}`,
-                    `💳 *Pago habitual:* *${customer.paymentChoice || 'Pago Móvil (Banesco)'}*`
+                    `💳 *Pago habitual:* *${cleanPayChoice}*`
                 ].join('\n'));
 
                 return gotoFlow(flowExpressConfirm);

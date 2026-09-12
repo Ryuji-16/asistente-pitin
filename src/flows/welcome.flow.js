@@ -35,18 +35,11 @@ export const flowWelcome = addKeyword([
     })
     .addAnswer(
         [
-            `¡Hola! 👋 Te habla *${BUSINESS_INFO.assistantName}*, tu asistente virtual de *${BUSINESS_INFO.name}* 🍗✨`,
+            `¡Hola! 👋 Te habla *${BUSINESS_INFO.assistantName}*, tu asistente de *${BUSINESS_INFO.name}* 🍗✨`,
             '',
-            'Estamos a tu orden con los mejores cortes de pollo fresco, congelados y charcutería al mejor precio de Caracas.',
+            'Estamos a la orden con pollo fresco de primera, combos y charcutería.',
+            '¿Qué tienes en mente llevar hoy, o prefieres que te comparta la lista de precios en PDF para revisar con calma?',
             '',
-            '╭─────────────────────────╮',
-            '│ 🍗 1️⃣  *Ver Catálogo y Precios (PDF)*',
-            '│ 🛒 2️⃣  *Hacer un Pedido*',
-            '│ 💳 3️⃣  *Métodos de Pago*',
-            '│ 📍 4️⃣  *Ubicación y Horarios*',
-            '│ 👤 5️⃣  *Hablar con un Asesor*',
-            '╰─────────────────────────╯',
-            '',
-            '👉 *Responde con el número (1, 2, 3, 4 o 5)* para continuar, o pregúntame directamente por el precio de cualquier corte.'
+            '_(Si buscas delivery, saber dónde estamos o hablar con un asesor, solo dímelo y te ayudo con gusto)_.'
         ].join('\n')
     );

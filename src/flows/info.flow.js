@@ -26,14 +26,14 @@ export const flowInfo = addKeyword([
 
         await flowDynamic([
             `📍 *UBICACIÓN Y HORARIOS - ${BUSINESS_INFO.name.toUpperCase()}*`,
-            '═════════════════════════════════',
+            '',
             '🏠 *Dirección de la Tienda:*',
             BUSINESS_INFO.address,
             '',
             '📌 *Punto de Referencia:*',
             'A pocos metros de la zona comercial y Farmatodo de La Trinidad.',
             '',
-            '🗺️ *Abrir en Google Maps / GPS:*',
+            '📍 *Abrir en Google Maps / GPS:*',
             `https://maps.google.com/?q=${STORE_LOCATION.latitude},${STORE_LOCATION.longitude}`,
             '',
             getStoreScheduleText(),
@@ -42,12 +42,8 @@ export const flowInfo = addKeyword([
             '',
             `📞 *Teléfono de Contacto:* ${BUSINESS_INFO.phone}`,
             `📸 *Instagram:* ${BUSINESS_INFO.instagram}`,
-            '═════════════════════════════════',
             '',
-            '👉 *¿Qué te gustaría hacer ahora?*',
-            '• Responde *1* para ver *Catálogo y Precios (PDF)*',
-            '• Responde *2* para *Hacer un Pedido*',
-            '• Responde *menu* para volver al Menú Principal'
+            '👉 Si deseas hacer un pedido, escribe directamente lo que necesitas o dime en qué más te puedo ayudar. 👍🍗'
         ].join('\n'));
         return endFlow();
     });

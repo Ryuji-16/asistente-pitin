@@ -105,7 +105,7 @@ export const flowGroup = addKeyword([
             let paymentInstructions = '';
             if (isPagoMovil) {
                 paymentInstructions = [
-                    '📱 *Datos para tu Pago Móvil (Banesco):*',
+                    '📱 *Datos para tu Pago Móvil:*',
                     `• *Banco:* ${PAYMENT_METHODS.pagoMovil.banco}`,
                     `• *Teléfono:* ${PAYMENT_METHODS.pagoMovil.telefono}`,
                     `• *RIF:* ${PAYMENT_METHODS.pagoMovil.rif}`,
@@ -160,7 +160,7 @@ export const flowGroup = addKeyword([
 
             const clientMsg = [
                 `📢 *Aviso sobre tu pedido #${order.id} - PitaPollo:*`,
-                '═══════════════════════════════',
+                '',
                 `Hola *${order.clientName}*, desde nuestra tienda nos indican el siguiente detalle sobre tu pedido:`,
                 '',
                 `👉 *${noticeText}*`,
@@ -184,7 +184,7 @@ export const flowGroup = addKeyword([
 
             const clientMsg = [
                 '🛵 *¡TU PEDIDO YA VA EN CAMINO!*',
-                '═══════════════════════════════',
+                '',
                 `Hola *${order.clientName}*, nuestro motorizado ya salió con tu pedido #${order.id}.`,
                 (order.paymentChoice || '').includes('Punto de venta') ? '💳 Recuerda tener tu tarjeta a mano para el punto de venta inalámbrico.' : '',
                 '',
@@ -206,7 +206,7 @@ export const flowGroup = addKeyword([
 
             const clientMsg = [
                 '🏪 *¡TU PEDIDO YA ESTÁ LISTO!*',
-                '═══════════════════════════════',
+                '',
                 `Hola *${order.clientName}*, tu pedido #${order.id} ya está empacado y listo para ser retirado en nuestra tienda de La Trinidad.`,
                 '',
                 '¡Te esperamos! 👍🍗'

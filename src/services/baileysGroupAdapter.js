@@ -110,6 +110,7 @@ function attachGroupListener(adapterProvider, sockEv) {
 
                 const hasImage = !!msgContent?.imageMessage;
                 const hasDoc = !!(msgContent?.documentMessage || msgContent?.documentWithCaptionMessage);
+                const isMedia = hasImage || hasDoc;
 
                 let trimmedText = textToBody.trim();
                 const lowerText = trimmedText.toLowerCase();
@@ -131,13 +132,28 @@ function attachGroupListener(adapterProvider, sockEv) {
                     lowerText === '#despacho' ||
                     lowerText === 'pedidos' ||
                     lowerText === 'actualizaciones';
-                const isMedia = hasImage || hasDoc;
 
-                // Si el cajero cita un pedido pendiente de ticket con texto (ej: "Son $25.50"),
-                // convertirlo automáticamente en comando #cuenta para que Pitín lo entregue al cliente
-                if (!isCommand && !isMedia && isQuotedPendingTicket && trimmedText) {
-                    isCommand = true;
-                    trimmedText = '#cuenta ' + trimmedText;
+                // Si el mensaje cita un pedido en el grupo, permitir respuestas naturales sin obligar a escribir '#'
+                if (!isCommand && !isMedia && orderQuoted) {
+                    const cleanSimple = lowerText.replace(/[!.,;]/g, '').trim();
+                    if (['ok', 'okey', 'okay', 'confirmado', 'pago ok', 'listo el pago'].includes(cleanSimple)) {
+                        isCommand = true;
+                        trimmedText = '#ok';
+                    } else if (['en camino', 'camino', 'va en camino', 'salio', 'salió', 'despachado'].includes(cleanSimple)) {
+                        isCommand = true;
+                        trimmedText = '#camino';
+                    } else if (['listo', 'listo el pedido', 'empacado', 'preparado'].includes(cleanSimple)) {
+                        isCommand = true;
+                        trimmedText = '#listo';
+                    } else if (cleanSimple.startsWith('cambio ')) {
+                        isCommand = true;
+                        trimmedText = '#cambio ' + trimmedText.slice(7).trim();
+                    } else if (isQuotedPendingTicket && trimmedText) {
+                        // Si cita un pedido pendiente de ticket con texto (ej: "Son $25.50"),
+                        // convertirlo automáticamente en comando #cuenta para que Pitín lo entregue al cliente
+                        isCommand = true;
+                        trimmedText = '#cuenta ' + trimmedText;
+                    }
                 }
 
                 // REGLA CLAVE: En los grupos SOLO procesamos:
