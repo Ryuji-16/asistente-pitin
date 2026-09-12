@@ -11,10 +11,15 @@ const __dirname = path.dirname(__filename);
 const assetsDir = path.resolve(__dirname, '../../assets');
 
 export const flowOffers = addKeyword([
-    '1', '1️⃣', 'oferta', 'ofertas', 'promocion', 'promociones',
-    'catalogo', 'catálogo', 'lista', 'la lista', 'lista de precios',
-    'precios', 'precio', 'ver ofertas', 'ver catalogo', 'ver catálogo'
-])
+    '1', '1️⃣',
+    'oferta', 'Oferta', 'OFERTA', 'ofertas', 'Ofertas', 'OFERTAS',
+    'promocion', 'Promocion', 'PROMOCION', 'promoción', 'Promoción', 'PROMOCIÓN',
+    'promociones', 'Promociones', 'PROMOCIONES',
+    'catalogo', 'Catalogo', 'CATALOGO', 'catálogo', 'Catálogo', 'CATÁLOGO',
+    'lista', 'Lista', 'LISTA', 'la lista', 'La lista', 'lista de precios', 'Lista de precios',
+    'precios', 'Precios', 'PRECIOS', 'precio', 'Precio', 'PRECIO',
+    'ver ofertas', 'Ver ofertas', 'ver catalogo', 'Ver catalogo', 'ver catálogo', 'Ver catálogo'
+], { sensitive: true })
     .addAction(async (ctx, { flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {

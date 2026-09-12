@@ -111,3 +111,52 @@ export function getQuotedText(ctx) {
         ''
     );
 }
+
+/**
+ * Sanitiza el nombre de un cliente eliminando saludos, frases de cortesía,
+ * ecos del bot, formato markdown y palabras de pago (extrayendo el método si existe).
+ * @param {string} raw
+ * @returns {{ cleanName: string, detectedPayment: string|null }}
+ */
+export function sanitizeCustomerName(raw = '') {
+    if (!raw || typeof raw !== 'string') return { cleanName: 'Cliente', detectedPayment: null };
+
+    let text = raw.trim();
+
+    // 1. Detectar si el cliente mencionó su forma de pago en la misma respuesta
+    let detectedPayment = null;
+    if (/\b(?:pago\s*m[oó]vil|transferencia|bs|bol[ií]vares)\b/i.test(text)) {
+        detectedPayment = 'Pago Móvil';
+    } else if (/\bzelle\b/i.test(text)) {
+        detectedPayment = 'Zelle';
+    } else if (/\b(?:efectivo|d[oó]lar(?:es)?|divisas?|\$)\b/i.test(text)) {
+        detectedPayment = 'Efectivo (Divisas / Bs)';
+    } else if (/\b(?:punto|tarjeta|pos|inal[aá]mbrico)\b/i.test(text)) {
+        detectedPayment = 'Punto de venta inalámbrico (Delivery)';
+    }
+
+    // 2. Limpiar prefijos de saludos, citas de bot, markdown y emojis
+    text = text
+        .replace(/[*_~`()[\]{}]/g, ' ')
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+        .replace(/^(?:¡?mucho gusto|hola|buenas tardes|buenas noches|buen d[ií]a|buenos d[ií]as|buenas|soy|me llamo|mi nombre es|mi nombre)\b[:\s,.-]*/gi, '')
+        .replace(/\b(?:pago\s*m[oó]vil|transferencia|zelle|efectivo|punto\s*(?:de\s*venta)?)\b/gi, '')
+        .replace(/¡|!/g, '')
+        .replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (!text || text.length < 2) {
+        return { cleanName: 'Cliente', detectedPayment };
+    }
+
+    // Capitalizar cada palabra correctamente (ej: "Reinaldys lovera" -> "Reinaldys Lovera")
+    const cleanName = text
+        .split(' ')
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+
+    return { cleanName, detectedPayment };
+}
+

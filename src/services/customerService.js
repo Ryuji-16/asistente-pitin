@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { sanitizePhone, arePhoneNumbersEqual } from '../utils/formatters.js';
+import { sanitizePhone, arePhoneNumbersEqual, sanitizeCustomerName } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 import { hasExplicitItems } from './orderParser.js';
 
@@ -94,12 +94,21 @@ class CustomerService {
 
         const totalOrders = (existing.totalOrders || 0) + 1;
 
+        const rawName = order.clientName || existing.name || 'Cliente';
+        const { cleanName, detectedPayment } = sanitizeCustomerName(rawName);
+
         let safeAddress = order.address || existing.address || '';
-        if (hasExplicitItems(safeAddress) || /^(?:quiero|quisiera|dame|mandame|necesito)/i.test(safeAddress)) {
-            safeAddress = order.latitude ? 'Ubicación GPS' : (existing.address && !hasExplicitItems(existing.address) ? existing.address : '');
+        const isBadAddress = (addr) =>
+            !addr ||
+            hasExplicitItems(addr) ||
+            /^(?:quiero|quisiera|dame|mandame|necesito)/i.test(addr) ||
+            /^(?:delivery|deluvery|delibery|deli|tienda|retiro|retiro en tienda)$/i.test(String(addr).trim());
+
+        if (isBadAddress(safeAddress)) {
+            safeAddress = order.latitude ? 'Ubicación GPS' : (!isBadAddress(existing.address) ? existing.address : '');
         }
 
-        let safePayment = (order.paymentChoice || existing.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
+        let safePayment = (order.paymentChoice || detectedPayment || existing.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
         if (hasExplicitItems(safePayment) || /^(?:quiero|quisiera|dame|mandame|necesito)/i.test(safePayment)) {
             safePayment = 'Pago Móvil';
         }
@@ -107,7 +116,7 @@ class CustomerService {
         const updatedProfile = {
             ...existing,
             phone: cleanPhone,
-            name: order.clientName || existing.name || 'Cliente',
+            name: cleanName,
             isDelivery: order.isDelivery,
             address: safeAddress,
             latitude: order.latitude !== undefined && order.latitude !== null ? order.latitude : existing.latitude || null,

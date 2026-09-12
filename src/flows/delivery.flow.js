@@ -72,7 +72,7 @@ export function formatDeliveryFeeResponse(feeEst, rawInput = '') {
  * Flujo conversacional para consultar el costo del delivery
  */
 export const flowDeliveryInquiry = addKeyword([
-    'delivery', 'delibery',
+    'delivery', 'delibery', 'deluvery', 'deli',
     'costo delivery', 'costo de delivery',
     'precio delivery', 'precio de delivery',
     'tarifa delivery', 'tarifa de delivery', 'tarifas delivery',

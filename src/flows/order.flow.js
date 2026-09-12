@@ -4,6 +4,7 @@ import { storeService } from '../services/storeService.js';
 import { customerService } from '../services/customerService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
 import { formatOrderItemsSimple, hasExplicitItems, appendOrderItems } from '../services/orderParser.js';
+import { sanitizeCustomerName } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
 const isCancelRequest = (text = '') => {
@@ -161,6 +162,20 @@ export const flowDeliveryAddress = addKeyword(['__flow_delivery_address__'])
                 }
             }
 
+            // 4. Si enviaron una palabra que no es una dirección real (ej: "delivery", "deluvery", "tienda")
+            const isBadAddress = (addr) =>
+                !addr ||
+                /^(?:delivery|deluvery|delibery|deli|envio|envío|a domicilio|domicilio|tienda|retiro|retiro en tienda|mi casa|la casa|mi direccion|por delivery)$/i.test(String(addr).replace(/[*_.,;]/g, '').trim());
+
+            if (!latitude && isBadAddress(address)) {
+                await flowDynamic([
+                    '⚠️ *"Delivery"* es el servicio de envío, pero necesitamos tu dirección exacta para que el motorizado llegue a tu puerta. 🛵',
+                    '',
+                    'Por favor, envíanos tu *ubicación GPS* (tocando el clip 📎 y seleccionando "Ubicación") o escríbenos tu *zona y dirección* (ej: La Trinidad, Las Minas, El Hatillo, etc.):'
+                ].join('\n'));
+                return;
+            }
+
             // 3. Estimar tarifa de delivery
             const feeEst = estimateDeliveryFee({ latitude, longitude, zoneText: address });
             const zoneName = feeEst.zoneName || feeEst.matchedZone || feeEst.label;
@@ -217,8 +232,10 @@ export const flowOrderDeliveryOrPickup = addKeyword(['__flow_order_delivery_or_p
             }
 
             const text = (ctx.body || '').trim().toLowerCase();
-            const isDelivery = text === '1' || text.includes('delivery') || text.includes('envio') || text.includes('envío') || text.includes('casa') || text.includes('domicilio') || text.includes('mandar') || text.includes('llevar');
-            const isPickup = text === '2' || text.includes('retiro') || text.includes('retirar') || text.includes('tienda') || text.includes('trinidad') || text.includes('pasar') || text.includes('recojo') || text.includes('buscar');
+            const isDelivery = text === '1' ||
+                /\b(?:delivery|deluvery|delibery|deli|envio|envío|envios|envíos|domicilio|a domicilio|casa|mi casa|mandar|llevar)\b/i.test(text);
+            const isPickup = text === '2' ||
+                /\b(?:retiro|retirar|tienda|trinidad|la trinidad|pasar|recojo|buscar)\b/i.test(text);
 
             if (isDelivery) {
                 await state.update({ isDelivery: true });
@@ -303,9 +320,12 @@ export const flowOrderNameWithItems = addKeyword(['__flow_order_name_with_items_
                 return;
             }
 
-            const name = ctx.body?.trim() || 'Cliente';
-            await state.update({ clientName: name });
-            await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
+            const { cleanName, detectedPayment } = sanitizeCustomerName(ctx.body);
+            await state.update({ clientName: cleanName });
+            if (detectedPayment) {
+                await state.update({ paymentChoice: detectedPayment });
+            }
+            await flowDynamic(`¡Mucho gusto, *${cleanName}*! 👍`);
             return gotoFlow(flowOrderDeliveryOrPickup);
         }
     );
@@ -337,9 +357,12 @@ export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
                 return;
             }
 
-            const name = ctx.body?.trim() || 'Cliente';
-            await state.update({ clientName: name });
-            await flowDynamic(`¡Mucho gusto, *${name}*! 👍`);
+            const { cleanName, detectedPayment } = sanitizeCustomerName(ctx.body);
+            await state.update({ clientName: cleanName });
+            if (detectedPayment) {
+                await state.update({ paymentChoice: detectedPayment });
+            }
+            await flowDynamic(`¡Mucho gusto, *${cleanName}*! 👍`);
             const s = state.getMyState() || {};
             if (s.items) {
                 return gotoFlow(flowOrderDeliveryOrPickup);
@@ -390,6 +413,51 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
                 return;
             }
 
+            // 2. Si el cliente envió una ubicación GPS (nativa o enlace de Maps)
+            let latitude = ctx.message?.locationMessage?.degreesLatitude || null;
+            let longitude = ctx.message?.locationMessage?.degreesLongitude || null;
+            const rawBody = (ctx.body || '').trim();
+
+            if (!latitude && rawBody.includes('maps')) {
+                const match = rawBody.match(/(-?\d+\.\d+),(-?\d+\.\d+)/);
+                if (match) {
+                    latitude = parseFloat(match[1]);
+                    longitude = parseFloat(match[2]);
+                }
+            }
+
+            if (latitude && longitude) {
+                const feeEst = estimateDeliveryFee({ latitude, longitude, zoneText: 'Ubicación GPS' });
+                const zoneName = feeEst.zoneName || feeEst.matchedZone || feeEst.label;
+                await state.update({
+                    isDelivery: true,
+                    address: 'Ubicación GPS',
+                    latitude,
+                    longitude,
+                    deliveryFee: feeEst.fee,
+                    deliveryLabel: feeEst.label,
+                    deliveryZone: zoneName
+                });
+                const s = state.getMyState() || {};
+                const feeText = feeEst.fee !== null && feeEst.fee !== undefined
+                    ? `$${Number(feeEst.fee).toFixed(2)} (${zoneName})`
+                    : 'Por verificar con la tienda';
+
+                await flowDynamic([
+                    '📍 *¡Ubicación GPS recibida y actualizada con éxito!* 🛵',
+                    `• 💰 *Tarifa de Delivery:* ${feeText}`,
+                    '',
+                    '📋 *DETALLE ACTUALIZADO DE TU PEDIDO:*',
+                    s.items,
+                    '',
+                    `💳 *Método de Pago:* *${(s.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '')}*`,
+                    '',
+                    '¿Deseas confirmar tu pedido con esta ubicación? 🚀',
+                    '_(Responde "Sí" para procesar de una vez, "Cambiar" para otros ajustes, o escribe si deseas agregar productos)_'
+                ].join('\n'));
+                return gotoFlow(flowExpressConfirm);
+            }
+
             const text = (ctx.body || '').trim().toLowerCase();
             const isConfirm = text === '1' || text === '1️⃣' ||
                 /\b(?:si|sí|confirmo|confirmar|confirmado|dale|ok|claro|listo|eso es todo|asi esta bien|así está bien|todo bien|perfecto|adelante|manda|mandalo|mándalo|enviar|proceder)\b/i.test(text);
@@ -425,15 +493,16 @@ export const flowExpressConfirm = addKeyword(['__flow_express_confirm__'])
                 await flowDynamic('Entendido, vamos a ajustar tus datos para este pedido. 👍');
                 return gotoFlow(flowOrderDeliveryOrPickup);
             } else {
-                // Si el mensaje no fue claro
+                // Si el mensaje no fue claro, re-guiar al cliente sin romper el ciclo de captura
                 await flowDynamic([
                     '¿Deseas confirmar tu pedido? 🛒',
                     '',
                     '• Responde *Sí* para procesar tu pedido de una vez.',
                     '• Responde *Cambiar* si deseas modificar tu entrega o forma de pago.',
+                    '• Envía tu *ubicación GPS* si deseas actualizar la dirección.',
                     '• O escribe directamente cualquier otro producto que quieras agregar.'
                 ].join('\n'));
-                return;
+                return gotoFlow(flowExpressConfirm);
             }
         }
     );
@@ -487,12 +556,16 @@ export const flowOrderItemsReturning = addKeyword(['__flow_order_items_returning
 
 // Flujo Principal de Pedido (Punto de Entrada)
 export const flowOrder = addKeyword([
-    '2', '2️⃣', 'pedido', 'pedir', 'comprar', 'orden', 'hacer pedido',
-    'quiero pedir', 'para pedir', 'quiero comprar', 'quiero', 'quisiera',
-    'mandame', 'mándame', 'anotame', 'anótame', 'apartame', 'apártame',
-    'traeme', 'tráeme', 'enviame', 'envíame', 'dame', 'danos', 'dános',
-    'vendeme', 'véndeme', 'voy a pedir', 'voy a querer'
-])
+    '2', '2️⃣',
+    'pedido', 'Pedido', 'PEDIDO', 'pedir', 'Pedir', 'PEDIR',
+    'comprar', 'Comprar', 'COMPRAR', 'orden', 'Orden', 'ORDEN',
+    'hacer pedido', 'Hacer pedido', 'quiero pedir', 'Quiero pedir', 'para pedir', 'Para pedir',
+    'quiero comprar', 'Quiero comprar', 'quiero', 'Quiero', 'QUIERO', 'quisiera', 'Quisiera',
+    'mandame', 'Mandame', 'mándame', 'Mándame', 'anotame', 'Anotame', 'anótame', 'Anótame',
+    'apartame', 'Apartame', 'apártame', 'Apártame', 'traeme', 'Traeme', 'tráeme', 'Tráeme',
+    'enviame', 'Enviame', 'envíame', 'Envíame', 'dame', 'Dame', 'DAME', 'danos', 'Danos', 'dános', 'Dános',
+    'vendeme', 'Vendeme', 'véndeme', 'Véndeme', 'voy a pedir', 'Voy a pedir', 'voy a querer', 'Voy a querer'
+], { sensitive: true })
     .addAction(async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
         const remoteJid = ctx.key?.remoteJid || ctx.from || '';
         if (remoteJid.endsWith('@g.us') || storeService.isPaused()) {

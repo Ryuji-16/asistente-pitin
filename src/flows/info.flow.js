@@ -23,6 +23,17 @@ export const flowInfo = addKeyword([
             return gotoFlow(flowOrder);
         }
 
+        const rawBody = (ctx.body || '').trim();
+        if (/maps\.google\.com|goo\.gl|maps\.app\.goo\.gl/i.test(rawBody) || /(-?\d+\.\d+),(-?\d+\.\d+)/.test(rawBody)) {
+            await flowDynamic([
+                '📍 *Hemos recibido tu ubicación GPS.* 🛵',
+                '',
+                '• Si deseas consultar la tarifa de delivery a esta zona, escribe *delivery*.',
+                '• Si deseas hacer tu pedido con entrega en esta dirección, escribe directamente lo que deseas pedir o responde *2*.'
+            ].join('\n'));
+            return endFlow();
+        }
+
         await flowDynamic([
             `📍 *UBICACIÓN Y HORARIOS - ${BUSINESS_INFO.name.toUpperCase()}*`,
             '',
