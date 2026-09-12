@@ -224,9 +224,9 @@ class StoreService {
         if (!ctx) return false;
         if (ctx.key?.fromMe) return true;
 
-        // Permitir vincular los grupos si aún no hay 2 grupos configurados
-        const total = (this.data.adminGroups?.length || 0) + (this.data.ordersGroups?.length || 0) + (this.data.updatesGroups?.length || 0);
-        if (total < 2) {
+        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
+        // Permitir vincular grupos directamente si el comando se ejecuta dentro de un grupo
+        if (remoteJid.endsWith('@g.us')) {
             return true;
         }
 
@@ -237,17 +237,6 @@ class StoreService {
             if (arePhoneNumbersEqual(participant, p) || arePhoneNumbersEqual(ctx.from, p)) {
                 return true;
             }
-        }
-
-        // Si el mensaje proviene de un grupo ya registrado
-        const remoteJid = ctx.key?.remoteJid || ctx.from || '';
-        const allGroups = [
-            ...(this.data.adminGroups || []),
-            ...(this.data.ordersGroups || []),
-            ...(this.data.updatesGroups || [])
-        ];
-        if (allGroups.includes(remoteJid)) {
-            return true;
         }
 
         return false;

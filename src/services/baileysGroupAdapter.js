@@ -1,5 +1,6 @@
 import { utils, EVENTS } from '@builderbot/bot';
 import { orderService } from './orderService.js';
+import { storeService } from './storeService.js';
 import { logger } from '../utils/logger.js';
 
 // Registro de mensajes procesados para evitar duplicados en el socket
@@ -56,6 +57,31 @@ export function enableGroupSupport(adapterProvider) {
  * @param {Object} sockEv Baileys event emitter
  */
 function attachGroupListener(adapterProvider, sockEv) {
+    // Sincronización automática de grupos al abrir la conexión
+    sockEv.on('connection.update', async (update) => {
+        if (update.connection === 'open') {
+            try {
+                const groups = await (adapterProvider.vendor?.groupFetchAllParticipating ? adapterProvider.vendor.groupFetchAllParticipating() : null);
+                if (groups) {
+                    logger.info(`Sincronizando grupos de WhatsApp de la cuenta (${Object.keys(groups).length} detectados)...`);
+                for (const [id, g] of Object.entries(groups)) {
+                    const name = (g.subject || '').toLowerCase();
+                    if (name.includes('pedido') || name.includes('despacho') || name.includes('entrega')) {
+                        storeService.registerOrdersGroup(id);
+                        logger.success(`[Auto-Grupo] Vinculado para Pedidos: "${g.subject}" (${id})`);
+                    }
+                    if (name.includes('actualiza') || name.includes('precio') || name.includes('tasa')) {
+                        storeService.registerUpdatesGroup(id);
+                        logger.success(`[Auto-Grupo] Vinculado para Actualizaciones: "${g.subject}" (${id})`);
+                    }
+                }
+                }
+            } catch (err) {
+                logger.warn(`No se pudieron auto-sincronizar los grupos: ${err.message}`);
+            }
+        }
+    });
+
     sockEv.on('messages.upsert', async (upsertEvent) => {
         try {
             const { messages, type } = upsertEvent || {};
