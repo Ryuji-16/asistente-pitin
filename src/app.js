@@ -44,7 +44,7 @@ const main = async () => {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="refresh" content="4">
-    <title>Vincular WhatsApp - Asistente Pitín</title>
+    <title>Vincular WhatsApp - ${BUSINESS_INFO.name}</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         .card { background: #1e293b; border-radius: 16px; padding: 28px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); text-align: center; max-width: 380px; width: 100%; border: 1px solid #334155; }
@@ -57,7 +57,7 @@ const main = async () => {
 </head>
 <body>
     <div class="card">
-        <h1>🍗 Asistente Pitín</h1>
+        <h1>${BUSINESS_INFO.icon || '📱'} Asistente ${BUSINESS_INFO.assistantName} (${BUSINESS_INFO.name})</h1>
         <p>Abre WhatsApp en tu teléfono > <b>Dispositivos vinculados</b> > <b>Vincular un dispositivo</b> y escanea este código QR:</p>
         <div class="qr-wrapper">
             <img class="qr-img" src="data:image/png;base64,${base64Img}" alt="Código QR WhatsApp" />
@@ -70,7 +70,7 @@ const main = async () => {
 </html>`);
             } else {
                 res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"><title>Iniciando...</title></head><body style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;"><h2>🍗 Iniciando Asistente Pitín...</h2><p>Generando código QR, recargando en 2 segundos...</p></body></html>`);
+                res.end(`<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"><title>Iniciando...</title></head><body style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;"><h2>${BUSINESS_INFO.icon || '📱'} Iniciando Asistente ${BUSINESS_INFO.assistantName}...</h2><p>Generando código QR, recargando en 2 segundos...</p></body></html>`);
             }
         });
     }
