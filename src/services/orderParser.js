@@ -4,16 +4,32 @@
  * sencilla y directa (un ítem debajo del otro) para facilitar la lectura al personal de despacho.
  */
 
+import { storeConfigLoader } from '../config/storeConfigLoader.js';
+
+const configuredAssistant = (storeConfigLoader.getBusiness().assistantName || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
 const FILLER_WORDS = new Set([
     'hola', 'buenas', 'buen', 'dia', 'dias', 'tardes', 'noches', 'saludos',
     'que', 'tal', 'como', 'estas', 'esta', 'estan', 'epale', 'pana', 'amigo',
-    'amiga', 'pitin', 'asistente', 'por', 'favor', 'porfa', 'gracias', 'muchas',
+    'amiga', 'asistente', 'por', 'favor', 'porfa', 'gracias', 'muchas',
     'muchos', 'mira', 'esto', 'vale', 'ok', 'quiero', 'quisiera', 'necesito',
     'dame', 'mandame', 'anotame', 'apartame', 'traeme', 'enviame', 'voy', 'a',
     'pedir', 'querer', 'para', 'deseo', 'lo', 'siguiente',
     'ah', 'aja', 'ajá', 'y', 'e', 'tambien', 'también', 'ademas', 'además',
     'agrega', 'agregame', 'agrégame', 'sumale', 'súmale', 'pon', 'ponle'
 ]);
+
+if (configuredAssistant) {
+    FILLER_WORDS.add(configuredAssistant);
+}
+// Mantener alias por defecto
+FILLER_WORDS.add('pitin');
+
+function getPrefixRegex() {
+    const configuredAssistant = (storeConfigLoader.getBusiness().assistantName || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const assistantPattern = configuredAssistant ? `${configuredAssistant}|` : '';
+    return new RegExp(`^(?:hola|buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|saludos|c[oó]mo est[aá]s?|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|${assistantPattern}pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar|anota|anote|ah|aj[aá]|tambi[eé]n|adem[aá]s|agrega|agr[eé]game|s[uú]male|ponle|pon|y|e)[:\\s,.-]*`, 'i');
+}
 
 /**
  * Limpia prefijos y sufijos de una línea de producto
@@ -26,9 +42,7 @@ export function cleanItem(s) {
         .replace(/^[-*•]\s*|^\d+\)\s*|^\d+\.(?!\d)\s*/, '')
         .trim();
 
-    // Prefijos que se deben eliminar iterativamente al inicio
-    const prefixRegex = /^(?:hola|buenas tardes|buenas noches|buenos d[ií]as|buen d[ií]a|buenas|saludos|c[oó]mo est[aá]s?|c[oó]mo est[aá]n|qu[eé] tal|amig[oa]|pit[ií]n|asistente|por favor|porfa|mira|[eé]pale|pana|quisiera pedir|quisiera comprar|quisiera|quiero comprar|quiero pedir|quiero esto|quiero|voy a querer|voy a pedir|deseo|necesito|m[aá]ndame|an[oó]tame|ap[aá]rtame|tr[aá]eme|env[ií]ame|dame|d[aá]nos|v[eé]ndeme|esto|lo siguiente|para pedir|pedir|ordenar|anota|anote|ah|aj[aá]|tambi[eé]n|adem[aá]s|agrega|agr[eé]game|s[uú]male|ponle|pon|y|e)[:\s,.-]*/i;
-
+    const prefixRegex = getPrefixRegex();
     let changed = true;
     while (changed) {
         changed = false;
@@ -165,8 +179,21 @@ export function hasExplicitItems(text) {
     // 3. Unidades y cantidades explícitas (ej: "5 kilos", "2.5 de", "kilo y medio", "una bolsa de", "un cartón de")
     const hasUnits = /\b(?:\d+(?:[.,]\d+)?\s*(?:kg|kilos?|k|g|gr|gramos?|bolsas?|paquetes?|bandejas?|piezas?|pedazos?|unidades?|pack|packs|tenders?|cart[oó]n|cartones|combos?|ofertas?|pollos?|quesos?|milanesas?|huevos?)|(?:un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|kilo\s+y\s+medio|1\/2|1\/4)\s+(?:bolsa|paquete|bandeja|pedazo|kilo|pieza|oferta|queso|pollo|cart[oó]n|combo|lomo|carne|pechuga|muslo|ala)s?)\b/i.test(text);
 
-    // 4. Productos del catálogo
-    const hasProducts = /\b(?:pechugas?|muslos?|alas?|alitas?|milanesas?|cuadril|molida|solomo|lomito|lomo|punta|quesos?|salchichas?|chuletas?|costillas?|pollos?|carnes?|huevos?|h[ií]gados?|chistorras?|chorizos?|morcillas?|pernil(?:es)?|tenders?|nuggets?|teque[ñn]os?|combos?|ofertas?|cerdo)\b/i.test(text);
+    // 4. Productos del catálogo activo (o vocabulario base de respaldo)
+    const catalogKws = storeConfigLoader.getCatalogKeywords();
+    let hasProducts = false;
+    if (catalogKws.length > 0) {
+        const lowerText = text.toLowerCase();
+        for (const kw of catalogKws) {
+            if (kw && kw.length >= 3 && lowerText.includes(kw)) {
+                hasProducts = true;
+                break;
+            }
+        }
+    }
+    if (!hasProducts) {
+        hasProducts = /\b(?:pechugas?|muslos?|alas?|alitas?|milanesas?|cuadril|molida|solomo|lomito|lomo|punta|quesos?|salchichas?|chuletas?|costillas?|pollos?|carnes?|huevos?|h[ií]gados?|chistorras?|chorizos?|morcillas?|pernil(?:es)?|tenders?|nuggets?|teque[ñn]os?|combos?|ofertas?|cerdo)\b/i.test(text);
+    }
 
     // Caso A: Si tiene verbo explícito de pedido y menciona productos o unidades
     if (hasVerb && (hasProducts || hasUnits)) {

@@ -1,6 +1,7 @@
 import { utils, EVENTS } from '@builderbot/bot';
 import { orderService } from './orderService.js';
 import { storeService } from './storeService.js';
+import { storeConfigLoader } from '../config/storeConfigLoader.js';
 import { logger } from '../utils/logger.js';
 
 // Registro de mensajes procesados para evitar duplicados en el socket
@@ -66,8 +67,9 @@ function attachGroupListener(adapterProvider, sockEv) {
                     logger.info(`Sincronizando grupos de WhatsApp de la cuenta (${Object.keys(groups).length} detectados)...`);
                 for (const [id, g] of Object.entries(groups)) {
                     const name = (g.subject || '').toLowerCase();
-                    // Solo vincular grupos que digan "Pitin" en el nombre
-                    if (!name.includes('pitin') && !name.includes('pitín')) {
+                    const groupKeyword = storeConfigLoader.getGroupKeyword();
+                    // Vincular grupos que coincidan con la palabra clave configurada
+                    if (groupKeyword && !name.includes(groupKeyword)) {
                         continue;
                     }
                     if (name.includes('pedido') || name.includes('despacho') || name.includes('entrega')) {

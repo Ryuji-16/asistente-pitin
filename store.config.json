@@ -1,0 +1,492 @@
+{
+  "business": {
+    "id": "pitapollo-trinidad",
+    "name": "PitaPollo",
+    "branch": "La Trinidad",
+    "assistantName": "Pitín",
+    "icon": "🍗",
+    "tagline": "Pollo fresco de primera, combos y charcutería",
+    "welcomeMessage": "Estamos a la orden con pollo fresco de primera, combos y charcutería.\n¿Qué tienes en mente llevar hoy, o prefieres que te comparta la lista de precios en PDF para revisar con calma?\n\n_(Si buscas delivery, saber dónde estamos o hablar con un asesor, solo dímelo y te ayudo con gusto)_.",
+    "phone": "0414-263-40-53",
+    "instagram": "@pitapolloccs",
+    "address": "Calle principal de La Trinidad, Caracas (Referencia: cerca del Farmatodo / zona comercial).",
+    "reference": "A pocos metros de la zona comercial y Farmatodo de La Trinidad.",
+    "location": {
+      "name": "PitaPollo - La Trinidad",
+      "latitude": 10.4326,
+      "longitude": -66.8601
+    }
+  },
+  "whatsapp": {
+    "groupKeyword": "pitin"
+  },
+  "schedule": {
+    "timezone": "America/Caracas",
+    "ranges": [
+      {
+        "id": "mondayToSaturday",
+        "days": [1, 2, 3, 4, 5, 6],
+        "openHour": 8,
+        "openMinute": 0,
+        "closeHour": 18,
+        "closeMinute": 0,
+        "label": "Lunes a Sábado: 8:00 AM a 6:00 PM"
+      },
+      {
+        "id": "sunday",
+        "days": [0],
+        "openHour": 8,
+        "openMinute": 30,
+        "closeHour": 14,
+        "closeMinute": 0,
+        "label": "Domingos: 8:30 AM a 2:00 PM"
+      }
+    ],
+    "offHoursNotice": "Hola 👋 En este momento nuestra tienda física se encuentra fuera de horario de atención comercial.\n\nPuedes dejarnos tu pedido o consulta por aquí y con mucho gusto te responderemos a primera hora al abrir. 🕒"
+  },
+  "delivery": {
+    "baseFee": 3.50,
+    "roadMultiplier": 1.35,
+    "fallbackFeeNotice": "Zona por verificar con la tienda",
+    "tiers": [
+      {
+        "tier": 1,
+        "fee": 3.50,
+        "label": "Zona 1 ($3.50)",
+        "maxKm": 4.2,
+        "zonesList": [
+          "La Trinidad",
+          "Baruta",
+          "La Tahona (parte baja)",
+          "Los Samanes",
+          "Las Minas de Baruta",
+          "Las Minas",
+          "La Maya",
+          "Santa Fe",
+          "Santa Inés",
+          "La Bonita",
+          "Las Danielas",
+          "El Placer de María",
+          "El Peñón",
+          "Club Hípico",
+          "Los Pinos",
+          "La Boyera",
+          "Concresa",
+          "Manzanares"
+        ],
+        "keywords": [
+          "la trinidad",
+          "trinidad",
+          "baruta",
+          "la tahona parte baja",
+          "la tahona baja",
+          "tahona parte baja",
+          "tahona baja",
+          "la tahona",
+          "tahona",
+          "los samanes",
+          "samanes",
+          "las minas de baruta",
+          "las minas",
+          "minas de baruta",
+          "la maya",
+          "santa fe norte",
+          "santa fe sur",
+          "santa fe",
+          "santa ines",
+          "la bonita",
+          "las danielas",
+          "danielas",
+          "el placer de maria",
+          "placer de maria",
+          "el placer",
+          "el penon",
+          "penon",
+          "club hipico",
+          "los pinos",
+          "la boyera",
+          "boyera",
+          "concresa",
+          "manzanares",
+          "manzanare"
+        ]
+      },
+      {
+        "tier": 2,
+        "fee": 5.00,
+        "label": "Zona 2 ($5.00)",
+        "maxKm": 7.5,
+        "zonesList": [
+          "Prados del Este",
+          "Alto Prado",
+          "Valle Arriba",
+          "Las Mercedes",
+          "Los Campitos",
+          "Colinas de La Tahona",
+          "El Cigarral",
+          "El Hatillo"
+        ],
+        "keywords": [
+          "colinas de la tahona",
+          "colinas de tahona",
+          "prados del este",
+          "alto prado",
+          "valle arriba",
+          "las mercedes",
+          "mercedes",
+          "los campitos",
+          "campitos",
+          "el cigarral",
+          "cigarral",
+          "el hatillo",
+          "hatillo"
+        ]
+      },
+      {
+        "tier": 3,
+        "fee": 7.00,
+        "label": "Zona 3 ($7.00)",
+        "maxKm": 12.0,
+        "zonesList": [
+          "La Lagunita",
+          "La Unión",
+          "Chacao",
+          "El Rosal",
+          "El Cafetal",
+          "Cumbres de Curumo",
+          "Plaza Las Américas",
+          "Cerro Verde",
+          "Los Naranjos",
+          "Los Guayabitos",
+          "Oripoto",
+          "Bello Monte",
+          "Santa Mónica",
+          "CCCT"
+        ],
+        "keywords": [
+          "plaza las americas",
+          "cumbres de curumo",
+          "colinas de bello monte",
+          "bello monte",
+          "santa monica",
+          "los guayabitos",
+          "guayabitos",
+          "los naranjos",
+          "naranjos",
+          "cerro verde",
+          "la lagunita",
+          "lagunita",
+          "la union",
+          "chacao",
+          "el rosal",
+          "rosal",
+          "el cafetal",
+          "cafetal",
+          "curumo",
+          "oripoto",
+          "ccct",
+          "c c c t",
+          "centro comercial tamanaco",
+          "tamanaco"
+        ]
+      }
+    ]
+  },
+  "paymentMethods": {
+    "pagoMovil": {
+      "enabled": true,
+      "banco": "Banesco (0134)",
+      "telefono": "0414-263-40-53",
+      "rif": "J-503873973",
+      "titular": "Pita Pollo"
+    },
+    "zelle": {
+      "enabled": true,
+      "email": "pitapolloccs@gmail.com",
+      "titular": "Pita Pollo CCS",
+      "nota": "⚠️ IMPORTANTE: Colocar en concepto/nota: Pollo Trinidad"
+    },
+    "otros": "💳 Punto de venta inalámbrico (¡El motorizado lleva el punto a tu puerta!)\n🏪 Punto de venta disponible en tienda\n💵 Efectivo en divisas (billetes en buen estado)\n🇻🇪 Bolívares en efectivo o transferencia a tasa oficial BCV"
+  },
+  "catalog": {
+    "pdfFile": "catalogo_pitapollo.pdf",
+    "products": [
+      {
+        "id": "pechuga",
+        "name": "Pechuga y Filet de Pechuga",
+        "category": "Pollo",
+        "keywords": [
+          "pechuga entera sin piel y sin hueso",
+          "pechuga entera sin piel ni hueso",
+          "pechuga sin piel y sin hueso",
+          "pechuga sin piel ni hueso",
+          "pechuga sin hueso",
+          "pechuga sin piel",
+          "pechuga entera",
+          "pechuga limpia",
+          "filet de pechuga",
+          "filete de pechuga",
+          "filet",
+          "filete",
+          "pechuga con hueso",
+          "recortes de pechuga",
+          "recorte de pechuga",
+          "pechuga",
+          "pechugas"
+        ]
+      },
+      {
+        "id": "muslo",
+        "name": "Muslos de Pollo y Cuadril",
+        "category": "Pollo",
+        "keywords": [
+          "muslos sin piel",
+          "muslo sin piel",
+          "muslos enteros",
+          "muslo entero",
+          "muslos",
+          "muslo",
+          "cuadril a",
+          "cuadril eco",
+          "cuadril",
+          "filet de muslo",
+          "muslitos"
+        ]
+      },
+      {
+        "id": "alas",
+        "name": "Alas de Pollo",
+        "category": "Pollo",
+        "keywords": [
+          "alas sin punta",
+          "alas enteras",
+          "ala entera",
+          "alitas",
+          "alas",
+          "alita",
+          "ala",
+          "chupetas de pollo",
+          "chupeta de pollo",
+          "chupetas",
+          "chupeta"
+        ]
+      },
+      {
+        "id": "pollo_entero",
+        "name": "Pollo Entero y Combos de Pollo",
+        "category": "Pollo",
+        "keywords": [
+          "bolsa de 5 unidades",
+          "bolsa de 5 pollos",
+          "bolsa de pollo",
+          "bolsas de pollo",
+          "5 pollos",
+          "pollo entero",
+          "pollos enteros",
+          "pollo picado",
+          "pollos picados",
+          "pollo",
+          "pollos"
+        ]
+      },
+      {
+        "id": "milanesa",
+        "name": "Milanesa de Pechuga",
+        "category": "Pollo",
+        "keywords": [
+          "milanesa de pechuga",
+          "milanesa premier",
+          "milanesas",
+          "milanesa"
+        ]
+      },
+      {
+        "id": "tenders",
+        "name": "Tenders y Nuggets",
+        "category": "Congelados",
+        "keywords": [
+          "tenders de pechuga",
+          "tenders",
+          "tender",
+          "nuggets de pollo",
+          "nuggets",
+          "nugget",
+          "brochetas de pollo",
+          "brochetas"
+        ]
+      },
+      {
+        "id": "menudencias",
+        "name": "Menudencias, Patas e Hígado",
+        "category": "Pollo",
+        "keywords": [
+          "patas limpias",
+          "patas de pollo",
+          "patas",
+          "higado de pollo",
+          "higados de pollo",
+          "higado",
+          "higados",
+          "mollejas de pollo",
+          "mollejas",
+          "molleja",
+          "corazon de pollo",
+          "corazones de pollo",
+          "corazon",
+          "corazones",
+          "carapachos",
+          "carapacho",
+          "pescuezos",
+          "pescuezo",
+          "cuellos de pollo",
+          "cuellos",
+          "gallina congelada",
+          "gallina picada",
+          "gallina",
+          "trio menudo"
+        ]
+      },
+      {
+        "id": "huevos",
+        "name": "Huevos Frescos",
+        "category": "Huevos",
+        "keywords": [
+          "carton de huevos",
+          "carton de huevo",
+          "medio carton de huevos",
+          "medio carton",
+          "huevos frescos",
+          "huevos",
+          "huevo"
+        ]
+      },
+      {
+        "id": "carne_res",
+        "name": "Carnes de Res",
+        "category": "Res",
+        "keywords": [
+          "carne molida especial",
+          "carne molida",
+          "molida especial",
+          "molida",
+          "bistec solomo",
+          "solomo madurado",
+          "solomo",
+          "punta trasera",
+          "punta odi",
+          "punta",
+          "lomito entero",
+          "bistec de lomito",
+          "medallones de lomito",
+          "lomito",
+          "ribeye",
+          "new york",
+          "carne para desmechar",
+          "carne para guisar",
+          "carne de res",
+          "bistec de primera",
+          "bistec",
+          "muchacho redondo",
+          "muchacho",
+          "osobuco",
+          "costillas de res",
+          "costilla de res",
+          "hamburguesa de carne"
+        ]
+      },
+      {
+        "id": "cerdo",
+        "name": "Carne de Cerdo",
+        "category": "Cerdo",
+        "keywords": [
+          "chuleta ahumada",
+          "chuleta fresca",
+          "chuletas",
+          "chuleta",
+          "costilla de cerdo",
+          "costillas de cerdo",
+          "falda de cerdo",
+          "bistec de cerdo",
+          "cerdo molido",
+          "lomo de cerdo",
+          "pork belly",
+          "tocineta",
+          "huesito ahumado",
+          "pernil entero",
+          "pernil deshuesado",
+          "pernil",
+          "paleta de cerdo",
+          "paticas de cerdo",
+          "cerdo",
+          "cochino"
+        ]
+      },
+      {
+        "id": "quesos",
+        "name": "Quesos y Lácteos",
+        "category": "Charcutería",
+        "keywords": [
+          "queso duro",
+          "semiduro merideno",
+          "queso mozzarella",
+          "mozzarella",
+          "tipo paisa",
+          "paisa",
+          "queso pecorino",
+          "pecorino",
+          "tipo parmesano",
+          "parmesano",
+          "queso amarillo",
+          "amarillo bola",
+          "queso ricotta",
+          "ricotta",
+          "crema de leche",
+          "queso cheddar",
+          "cheddar",
+          "queso crema",
+          "facilistas",
+          "queso",
+          "quesos"
+        ]
+      },
+      {
+        "id": "embutidos_parrilla",
+        "name": "Embutidos, Salchichas y Parrilla",
+        "category": "Charcutería",
+        "keywords": [
+          "mortadela",
+          "salchicha perro caliente",
+          "salchichas polacas",
+          "salchicha wiener",
+          "salchiprado",
+          "jamon arepero",
+          "jamon pierna",
+          "jamon de pavo",
+          "jamon serrano",
+          "chorizo espanol",
+          "salchichon",
+          "salami",
+          "coppa",
+          "la montserratina",
+          "chorizo ahumado",
+          "chorizo de ajo",
+          "chorizo carupanero",
+          "chorizo picante",
+          "chistorra",
+          "morcilla",
+          "salchicha blanca",
+          "choripanas",
+          "tequenos",
+          "mini pizzas",
+          "carbon vegetal",
+          "carbon premium"
+        ]
+      }
+    ]
+  },
+  "orderFlow": {
+    "orderProcessingNotice": "En breve uno de nuestros encargados pesará tu pedido y te enviará la foto del ticket con el total exacto.",
+    "pickupBranchLabel": "Retiro en tienda (La Trinidad)",
+    "farewellMessage": "¡Muchas gracias por preferir a PitaPollo! ¡Buen provecho! ✨🍗"
+  }
+}

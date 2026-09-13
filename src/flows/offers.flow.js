@@ -6,6 +6,9 @@ import { storeService } from '../services/storeService.js';
 import { hasExplicitItems } from '../services/orderParser.js';
 import { flowOrder } from './order.flow.js';
 
+import { BUSINESS_INFO } from '../config/data.js';
+import { storeConfigLoader } from '../config/storeConfigLoader.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const assetsDir = path.resolve(__dirname, '../../assets');
@@ -26,38 +29,41 @@ export const flowOffers = addKeyword([
             return endFlow();
         }
 
-        // Si el cliente tiene intención directa de compra con productos o cantidades (ej: "Quiero 1 oferta de cada una y 2 pollos")
+        // Si el cliente tiene intención directa de compra con productos o cantidades
         if (hasExplicitItems(ctx.body)) {
             return gotoFlow(flowOrder);
         }
 
-        const catalogoPdf = path.join(assetsDir, 'catalogo.pdf');
+        const configuredPdf = storeConfigLoader.getCatalog().pdfFile;
         const pdfCandidates = [
-            catalogoPdf,
+            configuredPdf ? path.join(assetsDir, configuredPdf) : null,
+            path.join(assetsDir, 'catalogo.pdf'),
             path.join(assetsDir, 'catalogo_pitapollo.pdf'),
             path.join(assetsDir, 'lista_precios.pdf')
-        ];
+        ].filter(Boolean);
         const existingPdf = pdfCandidates.find(p => fs.existsSync(p));
+
+        const catalogTitle = `${BUSINESS_INFO.icon || '📖'} *Catálogo y Lista de Precios - ${BUSINESS_INFO.name}*`;
 
         if (existingPdf) {
             await flowDynamic([
                 {
                     body: [
-                        '🍗 *Catálogo y Lista de Precios - PitaPollo*',
+                        catalogTitle,
                         '',
-                        '🛒 *Para ordenar:* Escribe directamente lo que deseas (ej: *2kg de muslo*) o responde *2*.'
+                        '🛒 *Para ordenar:* Escribe directamente lo que deseas ordenar o responde *2*.'
                     ].join('\n'),
                     media: existingPdf
                 }
             ]);
         } else {
             // Fallback en caso de que no se encuentre el archivo PDF en assets
-            await flowDynamic('🍗 *Catálogo y Lista de Precios - PitaPollo*');
+            await flowDynamic(catalogTitle);
             const sections = storeService.getCatalogSections();
             for (const section of sections) {
                 await flowDynamic(section);
             }
-            await flowDynamic('🛒 *Para ordenar:* Escribe directamente lo que deseas (ej: *2kg de muslo*) o responde *2*.');
+            await flowDynamic('🛒 *Para ordenar:* Escribe directamente lo que deseas ordenar o responde *2*.');
         }
         return endFlow();
     });

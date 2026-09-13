@@ -1,5 +1,4 @@
-import { addKeyword } from '@builderbot/bot';
-import { PAYMENT_METHODS } from '../config/data.js';
+import { BUSINESS_INFO, PAYMENT_METHODS } from '../config/data.js';
 import { storeService } from '../services/storeService.js';
 import { hasExplicitItems } from '../services/orderParser.js';
 import { flowOrder } from './order.flow.js';
@@ -15,26 +14,40 @@ export const flowPayment = addKeyword(['3', '3️⃣', 'pago', 'pagos', 'pagar',
             return gotoFlow(flowOrder);
         }
 
-        await flowDynamic([
-            '💳 *MÉTODOS DE PAGO DISPONIBLES - PITAPOLLO*',
-            '',
-            '📱 *PAGO MÓVIL:*',
-            `• *Banco:* ${PAYMENT_METHODS.pagoMovil.banco}`,
-            `• *Teléfono:* ${PAYMENT_METHODS.pagoMovil.telefono}`,
-            `• *RIF:* ${PAYMENT_METHODS.pagoMovil.rif}`,
-            `• *Titular:* ${PAYMENT_METHODS.pagoMovil.titular}`,
-            '',
-            '💵 *ZELLE:*',
-            `• *Correo:* ${PAYMENT_METHODS.zelle.email}`,
-            `• *Titular:* ${PAYMENT_METHODS.zelle.titular}`,
-            `• ${PAYMENT_METHODS.zelle.nota}`,
-            '',
-            '🏪 *OTROS MÉTODOS:*',
-            PAYMENT_METHODS.otros,
-            '',
-            '📌 *Nota:* Una vez realizado tu pago, por favor envía la captura o número de referencia por este chat para procesar tu pedido.',
-            '',
-            'Escribe *menu* para volver al inicio.'
-        ].join('\n'));
+        const blocks = [
+            `💳 *MÉTODOS DE PAGO DISPONIBLES - ${BUSINESS_INFO.name.toUpperCase()}*`,
+            ''
+        ];
+
+        if (PAYMENT_METHODS.pagoMovil && PAYMENT_METHODS.pagoMovil.telefono) {
+            blocks.push('📱 *PAGO MÓVIL:*');
+            blocks.push(`• *Banco:* ${PAYMENT_METHODS.pagoMovil.banco}`);
+            blocks.push(`• *Teléfono:* ${PAYMENT_METHODS.pagoMovil.telefono}`);
+            blocks.push(`• *RIF:* ${PAYMENT_METHODS.pagoMovil.rif}`);
+            blocks.push(`• *Titular:* ${PAYMENT_METHODS.pagoMovil.titular}`);
+            blocks.push('');
+        }
+
+        if (PAYMENT_METHODS.zelle && (PAYMENT_METHODS.zelle.email || PAYMENT_METHODS.zelle.enabled)) {
+            blocks.push('💵 *ZELLE:*');
+            blocks.push(`• *Correo:* ${PAYMENT_METHODS.zelle.email}`);
+            blocks.push(`• *Titular:* ${PAYMENT_METHODS.zelle.titular}`);
+            if (PAYMENT_METHODS.zelle.nota) {
+                blocks.push(`• ${PAYMENT_METHODS.zelle.nota}`);
+            }
+            blocks.push('');
+        }
+
+        if (PAYMENT_METHODS.otros) {
+            blocks.push('🏪 *OTROS MÉTODOS:*');
+            blocks.push(PAYMENT_METHODS.otros);
+            blocks.push('');
+        }
+
+        blocks.push('📌 *Nota:* Una vez realizado tu pago, por favor envía la captura o número de referencia por este chat para procesar tu pedido.');
+        blocks.push('');
+        blocks.push('Escribe *menu* para volver al inicio.');
+
+        await flowDynamic(blocks.join('\n'));
         return endFlow();
     });

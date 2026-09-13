@@ -1,12 +1,21 @@
 /**
- * Configuración de delivery, coordenadas y cálculo de tarifas para PitaPollo - La Trinidad
+ * Configuración de delivery, coordenadas y cálculo de tarifas dinámico y configurable
  */
+import { storeConfigLoader } from './storeConfigLoader.js';
 
-// Coordenadas base de PitaPollo (Calle Principal de La Trinidad, Caracas)
+/**
+ * Coordenadas base de la tienda
+ */
 export const STORE_LOCATION = {
-    name: 'PitaPollo - La Trinidad',
-    latitude: 10.4326,
-    longitude: -66.8601,
+    get name() {
+        return storeConfigLoader.getBusiness().location?.name || storeConfigLoader.getBusiness().name;
+    },
+    get latitude() {
+        return Number(storeConfigLoader.getBusiness().location?.latitude || 10.4326);
+    },
+    get longitude() {
+        return Number(storeConfigLoader.getBusiness().location?.longitude || -66.8601);
+    }
 };
 
 /**
@@ -23,191 +32,54 @@ export function normalizeZoneName(text = '') {
 }
 
 /**
- * Tarifas fijas oficiales y zonas de cobertura de PitaPollo
+ * Tarifas oficiales y zonas de cobertura cargadas desde la configuración
  */
-export const DELIVERY_TIERS = [
-    {
-        tier: 1,
-        fee: 3.50,
-        label: 'Zona 1 ($3.50)',
-        maxKm: 4.2,
-        zonesList: [
-            'La Trinidad',
-            'Baruta',
-            'La Tahona (parte baja)',
-            'Los Samanes',
-            'Las Minas de Baruta',
-            'Las Minas',
-            'La Maya',
-            'Santa Fe',
-            'Santa Inés',
-            'La Bonita',
-            'Las Danielas',
-            'El Placer de María',
-            'El Peñón',
-            'Club Hípico',
-            'Los Pinos',
-            'La Boyera',
-            'Concresa',
-            'Manzanares'
-        ],
-        keywords: [
-            'la trinidad',
-            'trinidad',
-            'baruta',
-            'la tahona parte baja',
-            'la tahona baja',
-            'tahona parte baja',
-            'tahona baja',
-            'la tahona',
-            'tahona',
-            'los samanes',
-            'samanes',
-            'las minas de baruta',
-            'las minas',
-            'minas de baruta',
-            'la maya',
-            'santa fe norte',
-            'santa fe sur',
-            'santa fe',
-            'santa ines',
-            'la bonita',
-            'las danielas',
-            'danielas',
-            'el placer de maria',
-            'placer de maria',
-            'el placer',
-            'el penon',
-            'penon',
-            'club hipico',
-            'los pinos',
-            'la boyera',
-            'boyera',
-            'concresa',
-            'manzanares',
-            'manzanare'
-        ]
-    },
-    {
-        tier: 2,
-        fee: 5.00,
-        label: 'Zona 2 ($5.00)',
-        maxKm: 7.5,
-        zonesList: [
-            'Prados del Este',
-            'Alto Prado',
-            'Valle Arriba',
-            'Las Mercedes',
-            'Los Campitos',
-            'Colinas de La Tahona',
-            'El Cigarral',
-            'El Hatillo'
-        ],
-        keywords: [
-            'colinas de la tahona',
-            'colinas de tahona',
-            'prados del este',
-            'alto prado',
-            'valle arriba',
-            'las mercedes',
-            'mercedes',
-            'los campitos',
-            'campitos',
-            'el cigarral',
-            'cigarral',
-            'el hatillo',
-            'hatillo'
-        ]
-    },
-    {
-        tier: 3,
-        fee: 7.00,
-        label: 'Zona 3 ($7.00)',
-        maxKm: 12.0,
-        zonesList: [
-            'La Lagunita',
-            'La Unión',
-            'Chacao',
-            'El Rosal',
-            'El Cafetal',
-            'Cumbres de Curumo',
-            'Plaza Las Américas',
-            'Cerro Verde',
-            'Los Naranjos',
-            'Los Guayabitos',
-            'Oripoto',
-            'Bello Monte',
-            'Santa Mónica',
-            'CCCT'
-        ],
-        keywords: [
-            'plaza las americas',
-            'cumbres de curumo',
-            'colinas de bello monte',
-            'bello monte',
-            'santa monica',
-            'los guayabitos',
-            'guayabitos',
-            'los naranjos',
-            'naranjos',
-            'cerro verde',
-            'la lagunita',
-            'lagunita',
-            'la union',
-            'chacao',
-            'el rosal',
-            'rosal',
-            'el cafetal',
-            'cafetal',
-            'curumo',
-            'oripoto',
-            'ccct',
-            'c c c t',
-            'centro comercial tamanaco',
-            'tamanaco'
-        ]
-    }
-];
+export const DELIVERY_TIERS = storeConfigLoader.getDelivery().tiers || [];
 
 /**
- * Texto formateado de las zonas y tarifas para mostrar al cliente
+ * Genera el texto formateado de zonas y tarifas para el cliente
  */
-export const DELIVERY_ZONES_TEXT = [
-    '🛵 *TARIFAS Y ZONAS DE DELIVERY - PITAPOLLO*',
-    '',
-    '🟢 *Zona 1 - $3.50:*',
-    '• La Trinidad, Baruta, La Tahona (parte baja)',
-    '• Los Samanes, Las Minas, La Maya, Santa Fe',
-    '• Santa Inés, La Bonita, Las Danielas',
-    '• El Placer de María, El Peñón, Club Hípico',
-    '• Los Pinos, La Boyera, Concresa, Manzanares',
-    '',
-    '🟡 *Zona 2 - $5.00:*',
-    '• Prados del Este, Alto Prado, Valle Arriba',
-    '• Las Mercedes, Los Campitos, Colinas de La Tahona',
-    '• El Cigarral, El Hatillo',
-    '',
-    '🟠 *Zona 3 - $7.00:*',
-    '• La Lagunita, La Unión, Chacao, El Rosal',
-    '• El Cafetal, Cumbres de Curumo, Plaza Las Américas',
-    '• Cerro Verde, Los Naranjos, Los Guayabitos',
-    '• Oripoto, Bello Monte, Santa Mónica, CCCT',
-    '',
-    '📍 *¿Pides a otra zona de Caracas?*',
-    '¡Con gusto te atendemos! Si tu dirección está fuera de estas zonas, verificaremos el monto del delivery correspondiente y te lo informaremos junto con el monto total de tu pedido.'
-].join('\n');
+export function buildDeliveryZonesText() {
+    const biz = storeConfigLoader.getBusiness();
+    const deliveryConfig = storeConfigLoader.getDelivery();
+    const tiers = deliveryConfig.tiers || [];
+
+    const lines = [
+        `🛵 *TARIFAS Y ZONAS DE DELIVERY - ${biz.name.toUpperCase()}*`,
+        ''
+    ];
+
+    const emojis = ['🟢', '🟡', '🟠', '🔴'];
+    tiers.forEach((t, idx) => {
+        const emoji = emojis[idx] || '📍';
+        lines.push(`${emoji} *Zona ${t.tier} - $${Number(t.fee).toFixed(2)}:*`);
+        if (Array.isArray(t.zonesList) && t.zonesList.length > 0) {
+            lines.push(`• ${t.zonesList.join(', ')}`);
+        }
+        lines.push('');
+    });
+
+    lines.push('📍 *¿Pides a otra zona?*');
+    lines.push('¡Con gusto te atendemos! Si tu dirección está fuera de estas zonas habituales, verificaremos la tarifa exacta al confirmar tu pedido.');
+
+    return lines.join('\n');
+}
+
+export const DELIVERY_ZONES_TEXT = buildDeliveryZonesText();
 
 function getReadableZoneName(rawKw, tier) {
     const normKw = normalizeZoneName(rawKw);
-    // 1. Coincidencia exacta con algún nombre de zonesList
-    const exact = tier.zonesList.find(z => normalizeZoneName(z) === normKw);
-    if (exact) return exact;
+    if (Array.isArray(tier.zonesList)) {
+        // 1. Coincidencia exacta con algún nombre de zonesList
+        const exact = tier.zonesList.find(z => normalizeZoneName(z) === normKw);
+        if (exact) return exact;
 
-    // 2. Coincidencia parcial: buscar la más larga/específica
-    const matches = tier.zonesList.filter(z => normKw.includes(normalizeZoneName(z)) || normalizeZoneName(z).includes(normKw));
-    if (matches.length > 0) {
-        matches.sort((a, b) => normalizeZoneName(b).length - normalizeZoneName(a).length);
-        return matches[0];
+        // 2. Coincidencia parcial: buscar la más larga/específica
+        const matches = tier.zonesList.filter(z => normKw.includes(normalizeZoneName(z)) || normalizeZoneName(z).includes(normKw));
+        if (matches.length > 0) {
+            matches.sort((a, b) => normalizeZoneName(b).length - normalizeZoneName(a).length);
+            return matches[0];
+        }
     }
 
     // 3. Si no, poner en mayúscula cada palabra
@@ -217,21 +89,27 @@ function getReadableZoneName(rawKw, tier) {
 /**
  * Prepara lista de palabras clave ordenada por longitud descendente para coincidencias precisas
  */
-const ALL_ZONE_KEYWORDS = [];
-for (const tier of DELIVERY_TIERS) {
-    for (const kw of tier.keywords) {
-        ALL_ZONE_KEYWORDS.push({
-            keyword: normalizeZoneName(kw),
-            rawZone: kw,
-            niceName: getReadableZoneName(kw, tier),
-            tier: tier.tier,
-            fee: tier.fee,
-            label: tier.label
-        });
+export function buildZoneKeywords(tiers = DELIVERY_TIERS) {
+    const list = [];
+    for (const tier of tiers) {
+        if (Array.isArray(tier.keywords)) {
+            for (const kw of tier.keywords) {
+                list.push({
+                    keyword: normalizeZoneName(kw),
+                    rawZone: kw,
+                    niceName: getReadableZoneName(kw, tier),
+                    tier: tier.tier,
+                    fee: tier.fee,
+                    label: tier.label
+                });
+            }
+        }
     }
+    list.sort((a, b) => b.keyword.length - a.keyword.length);
+    return list;
 }
-// Ordenar por longitud descendente para que "colinas de la tahona" se evalúe antes de "la tahona"
-ALL_ZONE_KEYWORDS.sort((a, b) => b.keyword.length - a.keyword.length);
+
+const ALL_ZONE_KEYWORDS = buildZoneKeywords(DELIVERY_TIERS);
 
 /**
  * Calcula la distancia en kilómetros entre dos coordenadas GPS usando la fórmula de Haversine
@@ -255,8 +133,8 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    // Factor de ruta vial en Caracas (~1.3x de la distancia en línea recta)
-    const distance = R * c * 1.3;
+    const roadMultiplier = Number(storeConfigLoader.getDelivery().roadMultiplier || 1.35);
+    const distance = R * c * roadMultiplier;
 
     return Math.round(distance * 10) / 10;
 }
@@ -275,7 +153,6 @@ export function estimateDeliveryFee({ latitude, longitude, zoneText = '' }) {
     // 1. Intentar coincidencia por texto de la zona
     if (clean) {
         for (const item of ALL_ZONE_KEYWORDS) {
-            // Coincidencia de subcadena exacta
             if (clean.includes(item.keyword)) {
                 return {
                     fee: item.fee,
@@ -313,7 +190,7 @@ export function estimateDeliveryFee({ latitude, longitude, zoneText = '' }) {
                     };
                 }
             }
-            // Si la distancia supera los 12 km (fuera de las 3 zonas fijas)
+            // Si la distancia supera las zonas fijas
             return {
                 fee: null,
                 tier: null,
@@ -327,14 +204,14 @@ export function estimateDeliveryFee({ latitude, longitude, zoneText = '' }) {
     }
 
     // 3. Si no coincide con ninguna de las zonas fijas:
-    // El bot indica que se verificará el monto para esa zona con el monto total del pedido
+    const fallbackNotice = storeConfigLoader.getDelivery().fallbackFeeNotice || 'Zona por verificar';
     return {
         fee: null,
         tier: null,
         distanceKm: null,
-        label: 'Zona por verificar',
-        zoneName: 'Zona por verificar',
-        matchedZone: 'Zona por verificar',
+        label: fallbackNotice,
+        zoneName: fallbackNotice,
+        matchedZone: fallbackNotice,
         isOtherZone: true
     };
 }

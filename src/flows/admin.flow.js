@@ -1,5 +1,6 @@
 import { addKeyword } from '@builderbot/bot';
 import { storeService } from '../services/storeService.js';
+import { BUSINESS_INFO } from '../config/data.js';
 import { formatVenezuelaDate } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
@@ -36,7 +37,7 @@ export const flowAdmin = addKeyword([
         if (text.toLowerCase() === '#activar') {
             storeService.setPaused(false, sender);
             return await flowDynamic([
-                '🟢 *ASISTENTE PITÍN ACTIVADO*',
+                `🟢 *ASISTENTE ${BUSINESS_INFO.assistantName.toUpperCase()} ACTIVADO*`,
                 '═════════════════════════════════',
                 'El bot está nuevamente en línea y respondiendo normalmente a los clientes.'
             ].join('\n'));
@@ -45,7 +46,7 @@ export const flowAdmin = addKeyword([
         // 1. Comando de ayuda
         if (text.toLowerCase() === '#ayuda') {
             return await flowDynamic([
-                '🛠️ *COMANDOS DE ADMINISTRACIÓN PITAPOLLO*',
+                `🛠️ *COMANDOS DE ADMINISTRACIÓN ${BUSINESS_INFO.name.toUpperCase()}*`,
                 '═════════════════════════════════',
                 '• `#pausar` -> Pausa las respuestas automáticas a los clientes.',
                 '• `#activar` -> Reactiva las respuestas automáticas.',
@@ -67,7 +68,7 @@ export const flowAdmin = addKeyword([
             }
             storeService.clearGroups();
             return await flowDynamic([
-                '🔄 *GRUPOS DESVINCULADOS CON ÉXITO* 🍗',
+                '🔄 *GRUPOS DESVINCULADOS CON ÉXITO* ✨',
                 '═════════════════════════════════',
                 'Se han desvinculado todos los grupos del sistema.',
                 '',
@@ -84,11 +85,11 @@ export const flowAdmin = addKeyword([
             const generals = storeService.getStore().adminGroups || [];
 
             return await flowDynamic([
-                '👥 *ESTADO DE GRUPOS EN ASISTENTE PITÍN*',
+                `👥 *ESTADO DE GRUPOS EN ASISTENTE ${BUSINESS_INFO.assistantName.toUpperCase()}*`,
                 '═════════════════════════════════',
                 `📦 *Grupo de Pedidos y Despacho:* ${orders.length ? `✅ Vinculado (${orders.join(', ')})` : '❌ Pendiente (escribe `#grupo pedidos` en el grupo)'}`,
                 `📊 *Grupo de Actualizaciones:* ${updates.length ? `✅ Vinculado (${updates.join(', ')})` : '❌ Pendiente (escribe `#grupo actualizaciones` en el grupo)'}`,
-                `🍗 *Grupos Generales (Ambos):* ${generals.length ? `✅ Vinculado (${generals.join(', ')})` : 'Ninguno'}`,
+                `📱 *Grupos Generales (Ambos):* ${generals.length ? `✅ Vinculado (${generals.join(', ')})` : 'Ninguno'}`,
                 '═════════════════════════════════',
                 '💡 *Para vincular un grupo nuevo:*',
                 'Escribe dentro del grupo correspondiente:',
@@ -128,7 +129,7 @@ export const flowAdmin = addKeyword([
             if (subCmd === 'pedidos' || subCmd === 'despacho' || subCmd === 'ordenes') {
                 storeService.registerOrdersGroup(groupId);
                 return await flowDynamic([
-                    '✅ *¡GRUPO DE PEDIDOS Y DESPACHO VINCULADO!* 🍗📦',
+                    '✅ *¡GRUPO DE PEDIDOS Y DESPACHO VINCULADO!* 📦',
                     '═════════════════════════════════',
                     `🆔 *ID del Grupo:* \`${groupId}\``,
                     '',
@@ -149,7 +150,7 @@ export const flowAdmin = addKeyword([
                     '═════════════════════════════════',
                     `🆔 *ID del Grupo:* \`${groupId}\``,
                     '',
-                    'Este grupo quedó autorizado para administración y actualizaciones de PitaPollo.',
+                    `Este grupo quedó autorizado para administración y actualizaciones de ${BUSINESS_INFO.name}.`,
                     '',
                     '👉 *Comandos disponibles aquí:*',
                     '• `#tasa <monto>` -> Actualiza la tasa BCV oficial (ej: `#tasa 65.50`).',
@@ -162,7 +163,7 @@ export const flowAdmin = addKeyword([
             // Registro general (#grupo)
             storeService.registerAdminGroup(groupId);
             return await flowDynamic([
-                '✅ *¡GRUPO OFICIAL VINCULADO!* 🍗📱',
+                '✅ *¡GRUPO OFICIAL VINCULADO!* 📱',
                 '═════════════════════════════════',
                 `🆔 *ID del Grupo:* \`${groupId}\``,
                 '',

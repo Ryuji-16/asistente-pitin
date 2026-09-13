@@ -6,31 +6,27 @@ const __dirname = path.dirname(__filename);
 const assetsDir = path.resolve(__dirname, '../../assets');
 
 import { DELIVERY_ZONES_TEXT } from './delivery.js';
+import { storeConfigLoader } from './storeConfigLoader.js';
+import { getStoreScheduleText } from '../services/scheduleService.js';
+
+const bizConfig = storeConfigLoader.getBusiness();
 
 export const BUSINESS_INFO = {
-    name: 'PitaPollo - La Trinidad',
-    assistantName: 'Pitín',
-    phone: '0414-263-40-53',
-    instagram: '@pitapolloccs',
-    address: 'Calle principal de La Trinidad, Caracas (Referencia: cerca del Farmatodo / zona comercial).',
-    schedule: '🕒 Lunes a Sábado: 8:00 AM a 6:00 PM\n🕒 Domingos: 8:30 AM a 2:00 PM',
+    name: bizConfig.name,
+    branch: bizConfig.branch,
+    assistantName: bizConfig.assistantName,
+    icon: bizConfig.icon || '🏪',
+    tagline: bizConfig.tagline || '',
+    welcomeMessage: bizConfig.welcomeMessage || '',
+    phone: bizConfig.phone,
+    instagram: bizConfig.instagram,
+    address: bizConfig.address,
+    reference: bizConfig.reference || '',
+    schedule: getStoreScheduleText(),
     deliveryZones: DELIVERY_ZONES_TEXT,
 };
 
-export const PAYMENT_METHODS = {
-    pagoMovil: {
-        banco: 'Banesco (0134)',
-        telefono: '0414-263-40-53',
-        rif: 'J-503873973',
-        titular: 'Pita Pollo'
-    },
-    zelle: {
-        email: 'pitapolloccs@gmail.com',
-        titular: 'Pita Pollo CCS',
-        nota: '⚠️ IMPORTANTE: Colocar en concepto/nota: Pollo Trinidad'
-    },
-    otros: '💳 Punto de venta inalámbrico (¡El motorizado lleva el punto a tu puerta!)\n🏪 Punto de venta disponible en tienda\n💵 Efectivo en divisas (billetes en buen estado)\n🇻🇪 Bolívares en efectivo o transferencia a tasa oficial BCV'
-};
+export const PAYMENT_METHODS = storeConfigLoader.getPaymentMethods();
 
 export const PROMOS = [
     {

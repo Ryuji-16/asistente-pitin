@@ -3,6 +3,8 @@ import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
 import { customerService } from '../services/customerService.js';
 import { estimateDeliveryFee } from '../config/delivery.js';
+import { BUSINESS_INFO } from '../config/data.js';
+import { storeConfigLoader } from '../config/storeConfigLoader.js';
 import { formatOrderItemsSimple, hasExplicitItems, appendOrderItems } from '../services/orderParser.js';
 import { sanitizeCustomerName } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
@@ -333,7 +335,7 @@ export const flowOrderNameWithItems = addKeyword(['__flow_order_name_with_items_
 // Subflujo: Nombre de Cliente Nuevo
 export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
     .addAnswer(
-        '🛒 *INICIAR PEDIDO - PITAPOLLO*\n\n¡Excelente! Vamos a tomar los datos de tu pedido paso a paso.\n_(Escribe *cancelar* en cualquier momento si deseas salir)_\n\nPor favor, escribe tu *Nombre y Apellido*:',
+        `🛒 *INICIAR PEDIDO - ${BUSINESS_INFO.name.toUpperCase()}*\n\n¡Excelente! Vamos a tomar los datos de tu pedido paso a paso.\n_(Escribe *cancelar* en cualquier momento si deseas salir)_\n\nPor favor, escribe tu *Nombre y Apellido*:`,
         { capture: true },
         async (ctx, { state, flowDynamic, gotoFlow, endFlow }) => {
             if (isCancelRequest(ctx.body)) {
@@ -347,7 +349,7 @@ export const flowOrderNewCustomerName = addKeyword(['__flow_order_new_name__'])
                 const updatedItems = appendOrderItems(s.items, ctx.body);
                 await state.update({ items: updatedItems });
                 await flowDynamic([
-                    '➕ *¡Productos anotados!* 🍗📝',
+                    `➕ *¡Productos anotados!* ${BUSINESS_INFO.icon || '🛒'}📝`,
                     '',
                     '📋 *PEDIDO:*',
                     updatedItems,
@@ -597,14 +599,15 @@ export const flowOrder = addKeyword([
             if (hasItemsInMsg && items) {
                 // El cliente ya indicó su pedido directamente (ej: "Hola quiero 10kg de muslo")
                 const cleanAddress = (customer.address || '').startsWith('_event_location_') ? 'tu ubicación GPS' : `*${customer.address}*`;
+                const pickupLabel = storeConfigLoader.getOrderFlow().pickupBranchLabel || 'Retiro en tienda';
                 const deliveryDesc = customer.isDelivery
                     ? `Delivery a ${cleanAddress}`
-                    : 'Retiro en tienda *(La Trinidad)*';
+                    : pickupLabel;
 
                 const cleanPayChoice = (customer.paymentChoice || 'Pago Móvil').replace(/\s*\(Banesco\)/i, '');
 
                 await flowDynamic([
-                    `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *PitaPollo*. 🍗✨`,
+                    `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *${BUSINESS_INFO.name}*. ${BUSINESS_INFO.icon || '✨'}`,
                     '',
                     '📋 *DETALLE DEL PEDIDO:*',
                     items,
@@ -618,7 +621,7 @@ export const flowOrder = addKeyword([
 
             // Si no especificó productos en el mensaje inicial
             await flowDynamic([
-                `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *PitaPollo*. 🍗✨`,
+                `¡Hola *${customer.name}*! 👋 Qué gusto saludarte de nuevo en *${BUSINESS_INFO.name}*. ${BUSINESS_INFO.icon || '✨'}`,
                 customer.lastOrderItems ? `_(Tu última compra fue: ${customer.lastOrderItems})_` : ''
             ].filter(Boolean).join('\n'));
 

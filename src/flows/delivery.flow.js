@@ -1,5 +1,6 @@
 import { addKeyword } from '@builderbot/bot';
 import { estimateDeliveryFee } from '../config/delivery.js';
+import { BUSINESS_INFO } from '../config/data.js';
 import { storeService } from '../services/storeService.js';
 import { hasExplicitItems } from '../services/orderParser.js';
 import { flowOrder } from './order.flow.js';
@@ -45,25 +46,25 @@ export function formatDeliveryFeeResponse(feeEst, rawInput = '') {
 
     if (feeEst.fee !== null && feeEst.fee !== undefined) {
         return [
-            '🛵 *Tarifa de Delivery - PitaPollo:*',
+            `🛵 *Tarifa de Delivery - ${BUSINESS_INFO.name}:*`,
             '',
             `• 📍 *Zona / Sector:* ${zoneName}`,
             `• 💰 *Costo de envío:* $${Number(feeEst.fee).toFixed(2)}`,
             '',
-            '¿Te gustaría hacer un pedido? 🍗✨',
-            'Escribe directamente los productos que deseas (ej: *2kg de muslo*) o dinos en qué más te ayudamos.'
+            `¿Te gustaría hacer un pedido? ${BUSINESS_INFO.icon || '✨'}`,
+            'Escribe directamente los productos que deseas o dinos en qué más te ayudamos.'
         ].join('\n');
     }
 
     return [
-        '🛵 *Tarifa de Delivery - PitaPollo:*',
+        `🛵 *Tarifa de Delivery - ${BUSINESS_INFO.name}:*`,
         '',
         `• 📍 *Zona / Sector:* ${zoneName}`,
         '• 💰 *Costo de envío:* Zona por verificar con la tienda',
         '',
-        'Atendemos con gusto tu zona en Caracas. Para destinos fuera de nuestra ruta habitual, verificaremos la tarifa exacta al confirmar tu pedido.',
+        'Atendemos con gusto tu zona. Para destinos fuera de nuestra ruta habitual, verificaremos la tarifa exacta al confirmar tu pedido.',
         '',
-        '¿Te gustaría hacer un pedido? 🍗✨',
+        `¿Te gustaría hacer un pedido? ${BUSINESS_INFO.icon || '✨'}`,
         'Escribe directamente los productos que deseas llevar.'
     ].join('\n');
 }
@@ -106,9 +107,9 @@ export const flowDeliveryInquiry = addKeyword([
     })
     .addAnswer(
         [
-            '🛵 *Servicio de Delivery - PitaPollo*',
+            `🛵 *Servicio de Delivery - ${BUSINESS_INFO.name}*`,
             '',
-            '¡Sí, contamos con servicio de delivery en Caracas! 🍗✨',
+            `¡Sí, contamos con servicio de delivery! ${BUSINESS_INFO.icon || '🛵'}✨`,
             '',
             'Para darte el costo exacto de entrega:',
             '👉 Envíanos tu *ubicación GPS* (tocando el clip 📎 y seleccionando "Ubicación") o escríbenos tu *zona o sector* (ej: La Trinidad, Las Minas, El Hatillo, Chacao, etc.).'

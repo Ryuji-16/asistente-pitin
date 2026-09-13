@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { sanitizePhone, arePhoneNumbersEqual } from '../utils/formatters.js';
 import { formatOrderItemsSimple } from './orderParser.js';
+import { storeConfigLoader } from '../config/storeConfigLoader.js';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -243,7 +244,7 @@ class OrderService {
             '',
             `🛒 *Detalle del Pedido:*\n${items || 'No especificado'}`,
             '',
-            `🛵 *Modalidad:* ${isDelivery ? 'Delivery' : 'Retiro en tienda (La Trinidad)'}`,
+            `🛵 *Modalidad:* ${isDelivery ? 'Delivery' : (storeConfigLoader.getOrderFlow().pickupBranchLabel || 'Retiro en tienda')}`,
             isDelivery && address ? `📍 *Dirección de entrega:* ${address}` : '',
             isDelivery && mapUrl ? `📍 *Ubicación GPS:* ${mapUrl}` : '',
             isDelivery
@@ -254,13 +255,13 @@ class OrderService {
             `💳 *Método de pago:* ${cleanPayment}`,
             '',
             '✅ *Tu pedido ha sido registrado con éxito.*',
-            'En breve uno de nuestros encargados pesará tu pedido y te enviará la foto del ticket con el total exacto.',
+            storeConfigLoader.getOrderFlow().orderProcessingNotice || 'En breve procesaremos tu pedido y te enviaremos el total exacto.',
             '',
             isTransfer
                 ? '📌 *Recordatorio:* Recuerda enviar la captura del comprobante por este chat para verificar tu pago.'
                 : isPosDelivery
                     ? '💳 *Punto Inalámbrico:* Nuestro motorizado llevará el punto de venta a tu puerta para que pagues con tu tarjeta.'
-                    : '¡Muchas gracias por preferir a PitaPollo! Te esperamos.'
+                    : `¡Muchas gracias por preferir a ${storeConfigLoader.getBusiness().name}! Te esperamos.`
         ];
 
         return lines

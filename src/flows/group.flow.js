@@ -1,7 +1,8 @@
 import { addKeyword } from '@builderbot/bot';
 import { orderService } from '../services/orderService.js';
 import { storeService } from '../services/storeService.js';
-import { PAYMENT_METHODS } from '../config/data.js';
+import { PAYMENT_METHODS, BUSINESS_INFO } from '../config/data.js';
+import { storeConfigLoader } from '../config/storeConfigLoader.js';
 import { getQuotedMessageId, getQuotedText } from '../utils/formatters.js';
 import { logger } from '../utils/logger.js';
 
@@ -159,13 +160,13 @@ export const flowGroup = addKeyword([
             }
 
             const clientMsg = [
-                `📢 *Aviso sobre tu pedido #${order.id} - PitaPollo:*`,
+                `📢 *Aviso sobre tu pedido #${order.id} - ${BUSINESS_INFO.name}:*`,
                 '',
                 `Hola *${order.clientName}*, desde nuestra tienda nos indican el siguiente detalle sobre tu pedido:`,
                 '',
                 `👉 *${noticeText}*`,
                 '',
-                'Por favor respóndenos por aquí si deseas realizar el cambio o alguna modificación. 👍🍗'
+                'Por favor respóndenos por aquí si deseas realizar el cambio o alguna modificación. 👍'
             ].join('\n');
 
             try {
@@ -182,13 +183,14 @@ export const flowGroup = addKeyword([
         if (lowerBody === '#camino') {
             orderService.updateOrderStatus(order.id, 'DISPATCHED');
 
+            const farewell = storeConfigLoader.getOrderFlow().farewellMessage || `¡Muchas gracias por preferir a ${BUSINESS_INFO.name}! ✨`;
             const clientMsg = [
                 '🛵 *¡TU PEDIDO YA VA EN CAMINO!*',
                 '',
                 `Hola *${order.clientName}*, nuestro motorizado ya salió con tu pedido #${order.id}.`,
                 (order.paymentChoice || '').includes('Punto de venta') ? '💳 Recuerda tener tu tarjeta a mano para el punto de venta inalámbrico.' : '',
                 '',
-                '¡Muchas gracias por preferir a PitaPollo! ¡Buen provecho! ✨🍗'
+                farewell
             ].filter(Boolean).join('\n');
 
             try {
@@ -204,12 +206,13 @@ export const flowGroup = addKeyword([
         if (lowerBody === '#listo') {
             orderService.updateOrderStatus(order.id, 'READY_FOR_PICKUP');
 
+            const branchText = BUSINESS_INFO.branch ? ` en nuestra tienda de ${BUSINESS_INFO.branch}` : ' en nuestra tienda';
             const clientMsg = [
                 '🏪 *¡TU PEDIDO YA ESTÁ LISTO!*',
                 '',
-                `Hola *${order.clientName}*, tu pedido #${order.id} ya está empacado y listo para ser retirado en nuestra tienda de La Trinidad.`,
+                `Hola *${order.clientName}*, tu pedido #${order.id} ya está empacado y listo para ser retirado${branchText}.`,
                 '',
-                '¡Te esperamos! 👍🍗'
+                '¡Te esperamos! 👍'
             ].join('\n');
 
             try {
@@ -225,7 +228,7 @@ export const flowGroup = addKeyword([
         if (lowerBody === '#cancelar') {
             orderService.updateOrderStatus(order.id, 'CANCELLED');
 
-            const clientMsg = `⚠️ Tu pedido #${order.id} en PitaPollo ha sido cancelado por la tienda. Si tienes alguna consulta, por favor escríbenos por aquí.`;
+            const clientMsg = `⚠️ Tu pedido #${order.id} en ${BUSINESS_INFO.name} ha sido cancelado por la tienda. Si tienes alguna consulta, por favor escríbenos por aquí.`;
             try {
                 await provider.sendMessage(clientJid, clientMsg, {});
             } catch (err) {

@@ -35,11 +35,8 @@ export const flowWelcome = addKeyword([
     })
     .addAnswer(
         [
-            `¡Hola! 👋 Te habla *${BUSINESS_INFO.assistantName}*, tu asistente de *${BUSINESS_INFO.name}* 🍗✨`,
+            `¡Hola! 👋 Te habla *${BUSINESS_INFO.assistantName}*, tu asistente de *${BUSINESS_INFO.name}* ${BUSINESS_INFO.icon || '🏪'}✨`,
             '',
-            'Estamos a la orden con pollo fresco de primera, combos y charcutería.',
-            '¿Qué tienes en mente llevar hoy, o prefieres que te comparta la lista de precios en PDF para revisar con calma?',
-            '',
-            '_(Si buscas delivery, saber dónde estamos o hablar con un asesor, solo dímelo y te ayudo con gusto)_.'
+            BUSINESS_INFO.welcomeMessage || 'Estamos a la orden. ¿Qué te gustaría ordenar hoy?'
         ].join('\n')
     );

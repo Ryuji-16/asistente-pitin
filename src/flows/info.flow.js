@@ -41,7 +41,7 @@ export const flowInfo = addKeyword([
             BUSINESS_INFO.address,
             '',
             '📌 *Punto de Referencia:*',
-            'A pocos metros de la zona comercial y Farmatodo de La Trinidad.',
+            BUSINESS_INFO.reference || 'Consulta con nosotros para indicaciones detalladas de cómo llegar.',
             '',
             '📍 *Abrir en Google Maps / GPS:*',
             `https://maps.google.com/?q=${STORE_LOCATION.latitude},${STORE_LOCATION.longitude}`,
@@ -49,12 +49,12 @@ export const flowInfo = addKeyword([
             getStoreScheduleText(),
             '',
             '🛵 *Servicio de Delivery:*',
-            'Contamos con entregas a domicilio en Caracas. Si deseas consultar el costo hasta tu zona, solo pregúntame *costo de delivery*.',
+            'Contamos con entregas a domicilio. Si deseas consultar el costo hasta tu zona, solo pregúntame *costo de delivery*.',
             '',
             `📞 *Teléfono de Contacto:* ${BUSINESS_INFO.phone}`,
             `📸 *Instagram:* ${BUSINESS_INFO.instagram}`,
             '',
-            '👉 Si deseas hacer un pedido, escribe directamente lo que necesitas o dime en qué más te puedo ayudar. 👍🍗'
+            `👉 Si deseas hacer un pedido, escribe directamente lo que necesitas o dime en qué más te puedo ayudar. 👍${BUSINESS_INFO.icon || ''}`
         ].join('\n'));
         return endFlow();
     });
